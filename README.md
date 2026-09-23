@@ -4,12 +4,9 @@ This repository is ready for GitHub Pages. The complete website is in `index.htm
 
 ## What it does
 
-- Uses a custom dark, futuristic aircraft map instead of embedding a third-party map with controls or advertising.
-- Refreshes nearby aircraft every 20 seconds and lets you click a marker for flight, type, registration, altitude, speed, and squawk.
-- Applies best-effort colors: cyan commercial, purple military, orange fire, green law enforcement, and blue private/unknown.
-- Keeps the Broadcastify audio player in the top control bar.
-
-Aircraft category labels are inferred from publicly broadcast transponder fields and callsigns. They are informational only and may be wrong or incomplete, particularly for government and private aircraft.
+- Uses the working live-aircraft map embed, surrounded by a custom futuristic dashboard design.
+- Lets you click an aircraft in the map to see the details made available by the tracking provider.
+- Keeps the Broadcastify audio controls and an in-page fallback player.
 
 ## Incidents
 
@@ -38,4 +35,4 @@ Upload a replacement `index.html` to the same repository and commit the change. 
 
 ## Playback note
 
-The page first attempts direct HLS playback. If Broadcastify blocks the browser request, select **Fallback player** or **Open source**. GitHub Pages removes ChatGPT's network-preview restriction, but it cannot override restrictions imposed by Broadcastify or ADS-B Exchange.
+The page first attempts direct HLS playback. If Broadcastify blocks the browser request, select **Fallback player**. GitHub Pages removes ChatGPT's network-preview restriction, but it cannot override restrictions imposed by Broadcastify or ADS-B Exchange.
