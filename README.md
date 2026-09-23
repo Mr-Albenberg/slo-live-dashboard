@@ -1,20 +1,38 @@
-# SLO Live Operations — Custom GitHub Map
+# SLO Public Safety and Live Flights
 
-This GitHub Pages project keeps the working **START AUDIO** and **FALLBACK** player. GitHub Actions retrieves an SLO-area aircraft snapshot every five minutes; the website draws its own MapLibre markers and colors.
+This repository is ready for GitHub Pages. The complete website is in `index.html`.
 
-## Publish
+## What it does
 
-1. Upload this folder's contents to a new GitHub repository, including `.github`, `data`, and `.nojekyll`.
-2. In **Settings → Actions → General**, choose **Read and write permissions**.
-3. Run **Actions → Refresh SLO aircraft snapshot → Run workflow** once, and wait for a green check.
-4. Enable **Settings → Pages → Deploy from a branch → main → /(root)**.
+- Uses the working live-aircraft map embed, surrounded by a custom futuristic dashboard design.
+- Lets you click an aircraft in the map to see the details made available by the tracking provider.
+- Keeps the Broadcastify audio controls and an in-page fallback player.
 
-## Change marker colors
+## Incidents
 
-Edit the five hex values in the `COLORS` line in `index.html`:
+The official SLO County source, PulsePoint, publishes selected CAL FIRE/SLO County and SLO City Fire dispatch CAD incidents, but this static site does not pull its underlying incident data. The dashboard therefore does not draw current red dispatch circles. Connecting them properly requires an approved/official incident-data feed or a backend service that is permitted to retrieve and republish that data.
 
-```js
-const CENTER=[-120.6596,35.2828], COLORS={commercial:'#5fe2ff',military:'#b188ff',fire:'#ff864d',law:'#59edae',private:'#6f9fb8'};
-```
+## Publish using the GitHub website
 
-The map reloads the same-origin snapshot once per minute; GitHub normally renews it every five minutes. Locate Me uses continuous browser GPS tracking, so the marker moves as your device location changes.
+1. Sign in at https://github.com.
+2. Select the **+** menu in the upper-right corner and choose **New repository**.
+3. Name it `slo-live-dashboard`, set it to **Public**, and select **Create repository**.
+4. On the repository page, choose **uploading an existing file** (or **Add file > Upload files**).
+5. Upload `index.html`, `.nojekyll`, and `README.md` from this folder. Do not upload the ZIP itself.
+6. Enter a commit message such as `Add SLO dashboard`, then select **Commit changes**.
+7. Open **Settings > Pages**.
+8. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
+9. Select the `main` branch, choose `/ (root)`, and press **Save**.
+10. Wait a few minutes and revisit **Settings > Pages**. GitHub will display the public website address.
+
+The address normally looks like:
+
+`https://YOUR-USERNAME.github.io/slo-live-dashboard/`
+
+## Updating the site
+
+Upload a replacement `index.html` to the same repository and commit the change. GitHub Pages will republish it automatically.
+
+## Playback note
+
+The page first attempts direct HLS playback. If Broadcastify blocks the browser request, select **Fallback player**. GitHub Pages removes ChatGPT's network-preview restriction, but it cannot override restrictions imposed by Broadcastify or ADS-B Exchange.
