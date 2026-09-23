@@ -2,7 +2,7 @@
 
 This repository is ready for GitHub Pages. The complete website is in `index.html`.
 
-This edition keeps the proven direct HLS audio, in-page Broadcastify fallback player, live embedded aircraft tracker, and **Locate Me** behavior unchanged. Only the outer floating HUD was redesigned, so the provider's aircraft markers, click details, and map controls continue to work normally.
+This edition keeps the proven direct HLS audio, in-page Broadcastify fallback player, and live embedded aircraft tracker. The audio controls are integrated into the floating HUD. The optional location feature has been removed, and a right-side visual rail hides the embedded map's extra controls while keeping the aircraft map usable.
 
 ## What it does
 
