@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SLO Public Safety & Live Flights</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+  <style>
+    :root{--bg:#071019;--panel:#0d1924;--line:#294052;--text:#edf6fc;--muted:#9eb2c0;--accent:#ff6847;--live:#49d17d}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    body{display:grid;grid-template-rows:auto minmax(0,1fr)}
+    header{padding:14px 18px;background:var(--panel);border-bottom:2px solid var(--line);box-shadow:0 8px 30px #0008;z-index:2}
+    .title{display:flex;align-items:center;gap:10px;margin-bottom:11px}.dot{width:10px;height:10px;border-radius:50%;background:#71838e}.dot.live{background:var(--live);box-shadow:0 0 12px #49d17dcc}
+    h1{margin:0;font-size:1rem}.status{margin-left:auto;color:var(--muted);font-size:.78rem;text-align:right}
+    .controls{display:grid;grid-template-columns:auto minmax(160px,1fr) auto auto;align-items:center;gap:10px}
+    button,.link{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border:1px solid transparent;border-radius:8px;font:inherit;font-size:.8rem;font-weight:750;text-decoration:none;cursor:pointer}
+    button{background:var(--accent);color:white}.link{border-color:#3b5568;background:#142636;color:var(--text)}button:hover,.link:hover{filter:brightness(1.12)}button:disabled{opacity:.55;cursor:wait}
+    audio{width:100%;height:40px}.map{position:relative;min-height:0}.map iframe{width:100%;height:100%;border:0;background:#081018}.badge{position:absolute;z-index:1;top:10px;left:10px;padding:7px 10px;border:1px solid #ffffff25;border-radius:7px;background:#071019df;font-size:.75rem;pointer-events:none}
+    dialog{width:min(650px,calc(100% - 30px));border:1px solid var(--line);border-radius:12px;padding:0;background:var(--panel);color:var(--text);box-shadow:0 20px 80px #000}dialog::backdrop{background:#000b}.modal-title{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:750}.modal-body{padding:16px}.modal-body p{margin:0 0 12px;color:var(--muted);font-size:.85rem;line-height:1.45}.modal-body iframe{width:100%;height:260px;border:0;background:#081018}.modal-actions{display:flex;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+    @media(max-width:720px){header{padding:11px}.controls{grid-template-columns:auto minmax(120px,1fr)}.controls .link{display:none}.status{font-size:.68rem}h1{font-size:.9rem}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title"><span id="dot" class="dot"></span><h1>SLO County Public Safety</h1><span id="status" class="status">Ready</span></div>
+    <div class="controls">
+      <button id="start" type="button">Start listening</button>
+      <audio id="audio" controls playsinline></audio>
+      <button id="fallback" class="link" type="button">Fallback player</button>
+      <a class="link" href="https://www.broadcastify.com/listen/feed/44069" target="_blank" rel="noopener">Open source</a>
+    </div>
+  </header>
+  <main class="map">
+    <div class="badge">Live aircraft near San Luis Obispo · KSBP</div>
+    <iframe title="Live aircraft near San Luis Obispo" src="https://globe.adsbexchange.com/?lat=35.2828&amp;lon=-120.6596&amp;zoom=9.5&amp;embedded_webview=true" allow="geolocation;fullscreen"></iframe>
+  </main>
+  <dialog id="fallbackDialog">
+    <div class="modal-title">Broadcastify fallback player</div>
+    <div class="modal-body">
+      <p>If direct playback is blocked by the browser, try this official popout player or use “Open source.”</p>
+      <iframe title="Broadcastify popout player" src="https://www.broadcastify.com/listen/feed/popout.php?feedId=44069" allow="autoplay"></iframe>
+    </div>
+    <div class="modal-actions"><button id="closeDialog" type="button">Close</button></div>
+  </dialog>
+  <script>
+    const STREAM="https://hls-o2.broadcastify.com/t/v1./feed/44069/playlist.m3u8";
+    const audio=document.getElementById("audio"),start=document.getElementById("start"),status=document.getElementById("status"),dot=document.getElementById("dot");
+    const fallbackDialog=document.getElementById("fallbackDialog");
+    let hls;
+    function state(text,live=false){status.textContent=text;dot.classList.toggle("live",live)}
+    async function play(){
+      start.disabled=true;state("Connecting…");
+      try{
+        if(hls){hls.destroy();hls=undefined}
+        audio.pause();audio.removeAttribute("src");audio.load();
+        if(audio.canPlayType("application/vnd.apple.mpegurl")){audio.src=STREAM}
+        else if(window.Hls&&Hls.isSupported()){
+          hls=new Hls({liveSyncDurationCount:3,enableWorker:true});
+          hls.loadSource(STREAM);hls.attachMedia(audio);
+          hls.on(Hls.Events.ERROR,(_e,d)=>{if(d.fatal){state("Direct stream blocked — use Fallback player");start.textContent="Try again"}});
+        }else throw new Error("HLS playback is unsupported in this browser");
+        await audio.play();state("Live",true);start.textContent="Reconnect";
+      }catch(e){console.error(e);state("Could not start — use Fallback player");start.textContent="Try again"}
+      finally{start.disabled=false}
+    }
+    start.addEventListener("click",play);
+    audio.addEventListener("playing",()=>state("Live",true));
+    audio.addEventListener("waiting",()=>state("Buffering…"));
+    audio.addEventListener("pause",()=>{if(audio.currentTime)state("Paused")});
+    document.getElementById("fallback").addEventListener("click",()=>fallbackDialog.showModal());
+    document.getElementById("closeDialog").addEventListener("click",()=>fallbackDialog.close());
+  </script>
+</body>
+</html>
