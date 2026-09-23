@@ -2,6 +2,19 @@
 
 This repository is ready for GitHub Pages. The complete website is in `index.html`.
 
+## What it does
+
+- Uses a custom dark, futuristic aircraft map instead of embedding a third-party map with controls or advertising.
+- Refreshes nearby aircraft every 20 seconds and lets you click a marker for flight, type, registration, altitude, speed, and squawk.
+- Applies best-effort colors: cyan commercial, purple military, orange fire, green law enforcement, and blue private/unknown.
+- Keeps the Broadcastify audio player in the top control bar.
+
+Aircraft category labels are inferred from publicly broadcast transponder fields and callsigns. They are informational only and may be wrong or incomplete, particularly for government and private aircraft.
+
+## Incidents
+
+The official SLO County source, PulsePoint, publishes selected CAL FIRE/SLO County and SLO City Fire dispatch CAD incidents, but this static site does not pull its underlying incident data. The dashboard therefore does not draw current red dispatch circles. Connecting them properly requires an approved/official incident-data feed or a backend service that is permitted to retrieve and republish that data.
+
 ## Publish using the GitHub website
 
 1. Sign in at https://github.com.
