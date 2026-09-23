@@ -1,0 +1,39 @@
+name: Refresh SLO aircraft snapshot
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download aircraft snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data
+          temp_file="$(mktemp)"
+          for source in \
+            'https://api.adsb.lol/v2/point/35.2828/-120.6596/100' \
+            'https://api.airplanes.live/v2/point/35.2828/-120.6596/100'; do
+            if curl --fail --silent --show-error --location --max-time 20 -A 'SLO-Live-Operations/1.0' "$source" -o "$temp_file" \
+              && jq -e '(.ac // .aircraft) | type == "array"' "$temp_file" >/dev/null; then
+              jq --arg generated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{generatedAt:$generated,ac:(.ac // .aircraft)}' "$temp_file" > data/aircraft.json
+              exit 0
+            fi
+          done
+          exit 1
+      - name: Commit snapshot
+        run: |
+          if git diff --quiet -- data/aircraft.json; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/aircraft.json
+          git commit -m 'Refresh SLO aircraft snapshot'
+          git push
