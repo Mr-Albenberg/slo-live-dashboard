@@ -1,6 +1,8 @@
-# SLO Public Safety and Live Flights
+# SLO Public Safety and Live Flights — Priority Edition
 
 This repository is ready for GitHub Pages. The complete website is in `index.html`.
+
+This edition keeps the proven direct HLS audio, in-page Broadcastify fallback player, live embedded aircraft tracker, and **Locate Me** behavior unchanged. Only the outer floating HUD was redesigned, so the provider's aircraft markers, click details, and map controls continue to work normally.
 
 ## What it does
 
