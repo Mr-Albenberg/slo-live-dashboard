@@ -1,28 +1,17 @@
-# SLO Live Operations — Custom Map Edition
+# SLO Live Operations — reliable edition
 
-Deploy this project to **Cloudflare Pages**, not GitHub Pages. Cloudflare Pages serves the static dashboard and the small `/api` functions that retrieve aircraft data without browser CORS failures.
+This version is designed for **GitHub Pages**. It intentionally uses the live aircraft and audio players that render directly in the browser, rather than browser API calls or a direct HLS request that can be blocked by CORS or stream-token restrictions.
 
-## Deploy from GitHub
+## Publish
 
-1. Create a public or private GitHub repository and upload this folder's contents.
-2. Create a free Cloudflare account at https://dash.cloudflare.com.
-3. Open **Workers & Pages**, select **Create application**, then **Pages**, then **Connect to Git**.
-4. Select your repository.
-5. Set the framework preset to **None**, build command to blank, and build output directory to `/`.
-6. Deploy. Cloudflare provides a `pages.dev` URL.
+1. Create a GitHub repository.
+2. Upload `index.html` and `.nojekyll` from this folder.
+3. In **Settings → Pages**, publish from the `main` branch and `/ (root)` folder.
+4. Open the displayed `https://YOUR-USERNAME.github.io/REPOSITORY/` link.
 
-## Features
+## Notes
 
-- Custom MapLibre map with keyless OpenFreeMap basemap.
-- Live SLO-area aircraft, colored by best-effort commercial, military, fire, law-enforcement, or private/unknown classification.
-- Click an aircraft for callsign, type, registration, altitude, speed, and squawk.
-- **Locate me** starts live location tracking: the blue pin moves as your device location updates. Click again to stop tracking.
-- Broadcastify direct player plus in-page fallback player.
-
-## Dispatch circles
-
-The map can display active incidents as pulsing red circles when an authorized GeoJSON feed is available. Set a Cloudflare Pages environment variable named `INCIDENTS_GEOJSON_URL` to the approved feed URL. It must return a GeoJSON `FeatureCollection` of active incident points. Without it, the dashboard accurately says no feed is connected rather than displaying made-up calls.
-
-## Important
-
-Aircraft labels are based on public transponder/callsign information and can be incomplete or wrong. Aircraft data is for personal awareness, not aviation decisions. The included data sources have their own terms and attribution requirements.
+- The map is an embedded live-aircraft service so aircraft will remain visible. Its internal aircraft colors, data, and provider UI cannot be changed by this site.
+- The top player is Broadcastify's supplied player, which is more reliable than the direct playlist. Play may still require one click because browsers prohibit unsolicited audio.
+- **Locate Me** asks for browser permission and recenters the live map at your current device location.
+- The site deliberately does not invent dispatch locations. A permitted, location-bearing incident data source is needed before red circles can be added.
