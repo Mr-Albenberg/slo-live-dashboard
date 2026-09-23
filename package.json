@@ -1,7 +1,0 @@
-{
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "check": "node --check functions/api/aircraft.js && node --check functions/api/incidents.js"
-  }
-}
