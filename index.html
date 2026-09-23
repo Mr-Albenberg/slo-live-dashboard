@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SLO // Live Operations</title>
+  <style>
+    :root{--ink:#050a11;--panel:#081521ee;--line:#214258;--text:#e9f5fc;--muted:#97b0c0;--cyan:#5fe2ff;--green:#59edae}*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--ink);color:var(--text);font:14px Inter,system-ui,sans-serif}body{overflow:hidden}header{position:absolute;z-index:4;top:14px;left:14px;right:14px;min-height:88px;padding:12px 15px;display:grid;grid-template-columns:1fr minmax(230px,430px) auto;gap:14px;align-items:center;background:#071421ed;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 55px #000a;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:11px}.beacon{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 15px #59edaeb5}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.18em;color:var(--cyan)}h1{margin:2px 0 0;font-size:16px;letter-spacing:.05em}.audio-wrap{height:43px;border:1px solid #395d73;border-radius:9px;overflow:hidden;background:#fff}.audio-wrap iframe{display:block;width:100%;height:100%;border:0}.stats{display:flex;gap:18px}.stat{display:grid;gap:2px}.stat b{font-size:17px}.stat span{color:var(--muted);font-size:9px;letter-spacing:.1em}.map{position:relative;width:100%;height:100%;background:#06111c}.map>iframe{display:block;width:100%;height:100%;border:0;background:#06111c}.hud{position:absolute;z-index:2;pointer-events:none}.scan{z-index:1;inset:0;opacity:.1;background:repeating-linear-gradient(0deg,transparent 0 3px,#c6f8ff0a 3px 4px)}.card{top:116px;left:14px;width:min(260px,calc(100% - 28px));padding:13px;border:1px solid #2b5369;border-radius:11px;background:var(--panel);box-shadow:0 15px 40px #0009}.card b{display:block;color:var(--cyan);font-size:10px;letter-spacing:.14em}.card span{display:block;margin-top:6px;color:#d0e1eb;font-size:12px;line-height:1.4}.locate{position:absolute;z-index:3;top:116px;right:14px;border:1px solid #3c6e86;border-radius:8px;padding:11px 13px;background:#0a2131ee;color:#e2f7ff;font:800 11px Inter,system-ui,sans-serif;letter-spacing:.06em;cursor:pointer;box-shadow:0 8px 25px #0009}.locate:hover{background:#12354a}.you{position:absolute;z-index:2;top:50%;left:50%;display:none;width:19px;height:19px;margin:-10px;border:3px solid #fff;border-radius:50%;background:#2f9dff;box-shadow:0 0 0 8px #2f9dff33,0 0 22px #2f9dffee;pointer-events:none}.you.active{display:block}.you:after{content:'YOU';position:absolute;top:23px;left:50%;transform:translateX(-50%);padding:3px 5px;border-radius:4px;background:#082033ee;color:#dff7ff;font-size:9px;font-weight:900;letter-spacing:.1em}.hint{bottom:14px;left:14px;color:#abc6d4;font-size:10px;letter-spacing:.06em;text-shadow:0 2px 5px #000}@media(max-width:650px){header{top:10px;left:10px;right:10px;grid-template-columns:1fr auto;min-height:106px;gap:8px}.audio-wrap{grid-column:1/-1}.stats{gap:10px}.stat:last-child{display:none}.card{top:132px;left:10px;width:190px}.locate{top:132px;right:10px}.hint{display:none}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="beacon"></span><div><div class="eyebrow">SLO // LIVE OPERATIONS</div><h1>PUBLIC SAFETY AUDIO</h1></div></div>
+    <div class="audio-wrap"><iframe title="SLO County Public Safety audio player" src="https://www.broadcastify.com/listen/feed/popout.php?feedId=44069" allow="autoplay"></iframe></div>
+    <div class="stats"><div class="stat"><b>LIVE</b><span>AIRCRAFT</span></div><div class="stat"><b>GPS</b><span>LOCATION</span></div></div>
+  </header>
+  <main class="map">
+    <iframe id="flightMap" title="Live aircraft near San Luis Obispo" src="https://globe.adsbexchange.com/?lat=35.2828&amp;lon=-120.6596&amp;zoom=9.5&amp;embedded_webview=true" allow="geolocation;fullscreen" loading="eager"></iframe>
+    <div class="hud scan"></div>
+    <aside class="hud card"><b>LIVE AIR TRAFFIC // KSBP</b><span>Click aircraft in the map to see the tracking service’s available details. The live provider controls its own aircraft symbols and labels.</span></aside>
+    <button id="locate" class="locate" type="button">◎ LOCATE ME</button><div id="you" class="you" aria-hidden="true"></div><div class="hud hint">LIVE AIRCRAFT MAP · GPS BUTTON RECENTERS ON YOUR CURRENT POSITION</div>
+  </main>
+  <script>
+    const map=document.getElementById('flightMap'),locate=document.getElementById('locate'),pin=document.getElementById('you');
+    function url(lat,lon){return `https://globe.adsbexchange.com/?lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&zoom=10&embedded_webview=true`}
+    function center(){if(!navigator.geolocation){locate.textContent='LOCATION UNAVAILABLE';return}locate.disabled=true;locate.textContent='LOCATING…';navigator.geolocation.getCurrentPosition(p=>{map.src=url(p.coords.latitude,p.coords.longitude);pin.classList.add('active');locate.textContent='◎ CENTERED ON YOU';locate.disabled=false},()=>{locate.textContent='LOCATION DENIED';locate.disabled=false},{enableHighAccuracy:true,timeout:12000,maximumAge:30000})}
+    locate.addEventListener('click',center);
+  </script>
+</body>
+</html>
