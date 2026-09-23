@@ -1,38 +1,28 @@
-# SLO Public Safety and Live Flights
+# SLO Live Operations — Custom Map Edition
 
-This repository is ready for GitHub Pages. The complete website is in `index.html`.
+Deploy this project to **Cloudflare Pages**, not GitHub Pages. Cloudflare Pages serves the static dashboard and the small `/api` functions that retrieve aircraft data without browser CORS failures.
 
-## What it does
+## Deploy from GitHub
 
-- Uses the working live-aircraft map embed, surrounded by a custom futuristic dashboard design.
-- Lets you click an aircraft in the map to see the details made available by the tracking provider.
-- Keeps the Broadcastify audio controls and an in-page fallback player.
+1. Create a public or private GitHub repository and upload this folder's contents.
+2. Create a free Cloudflare account at https://dash.cloudflare.com.
+3. Open **Workers & Pages**, select **Create application**, then **Pages**, then **Connect to Git**.
+4. Select your repository.
+5. Set the framework preset to **None**, build command to blank, and build output directory to `/`.
+6. Deploy. Cloudflare provides a `pages.dev` URL.
 
-## Incidents
+## Features
 
-The official SLO County source, PulsePoint, publishes selected CAL FIRE/SLO County and SLO City Fire dispatch CAD incidents, but this static site does not pull its underlying incident data. The dashboard therefore does not draw current red dispatch circles. Connecting them properly requires an approved/official incident-data feed or a backend service that is permitted to retrieve and republish that data.
+- Custom MapLibre map with keyless OpenFreeMap basemap.
+- Live SLO-area aircraft, colored by best-effort commercial, military, fire, law-enforcement, or private/unknown classification.
+- Click an aircraft for callsign, type, registration, altitude, speed, and squawk.
+- **Locate me** starts live location tracking: the blue pin moves as your device location updates. Click again to stop tracking.
+- Broadcastify direct player plus in-page fallback player.
 
-## Publish using the GitHub website
+## Dispatch circles
 
-1. Sign in at https://github.com.
-2. Select the **+** menu in the upper-right corner and choose **New repository**.
-3. Name it `slo-live-dashboard`, set it to **Public**, and select **Create repository**.
-4. On the repository page, choose **uploading an existing file** (or **Add file > Upload files**).
-5. Upload `index.html`, `.nojekyll`, and `README.md` from this folder. Do not upload the ZIP itself.
-6. Enter a commit message such as `Add SLO dashboard`, then select **Commit changes**.
-7. Open **Settings > Pages**.
-8. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-9. Select the `main` branch, choose `/ (root)`, and press **Save**.
-10. Wait a few minutes and revisit **Settings > Pages**. GitHub will display the public website address.
+The map can display active incidents as pulsing red circles when an authorized GeoJSON feed is available. Set a Cloudflare Pages environment variable named `INCIDENTS_GEOJSON_URL` to the approved feed URL. It must return a GeoJSON `FeatureCollection` of active incident points. Without it, the dashboard accurately says no feed is connected rather than displaying made-up calls.
 
-The address normally looks like:
+## Important
 
-`https://YOUR-USERNAME.github.io/slo-live-dashboard/`
-
-## Updating the site
-
-Upload a replacement `index.html` to the same repository and commit the change. GitHub Pages will republish it automatically.
-
-## Playback note
-
-The page first attempts direct HLS playback. If Broadcastify blocks the browser request, select **Fallback player**. GitHub Pages removes ChatGPT's network-preview restriction, but it cannot override restrictions imposed by Broadcastify or ADS-B Exchange.
+Aircraft labels are based on public transponder/callsign information and can be incomplete or wrong. Aircraft data is for personal awareness, not aviation decisions. The included data sources have their own terms and attribution requirements.
