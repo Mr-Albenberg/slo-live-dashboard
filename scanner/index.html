@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SLO // Dispatch Watch</title>
+  <meta name="theme-color" content="#03080d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dispatch Watch">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.20/hls.min.js"></script>
+  <style>
+    :root{--ink:#03080d;--panel:#071321eb;--line:#26526a;--text:#eaf6fb;--muted:#9db8c7;--cyan:#61dcff;--orange:#ff864e;--green:#53ebb0;--red:#ff4e5e}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--ink);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+    body{padding:14px;padding-top:max(14px,env(safe-area-inset-top));min-height:100vh}
+    header{position:sticky;z-index:1000;top:14px;display:grid;grid-template-columns:minmax(255px,1fr) minmax(480px,720px);align-items:center;gap:18px;padding:9px 14px 9px 17px;background:#071522ed;border:1px solid #255069;border-radius:12px;box-shadow:0 14px 36px #0009;backdrop-filter:blur(11px)}
+    .topline{display:flex;align-items:center;gap:11px}
+    .beacon{width:11px;height:11px;flex:0 0 auto;border-radius:50%;background:#6d8290}
+    .beacon.live{background:var(--green);box-shadow:0 0 16px #53ebb0cc}
+    .eyebrow{color:var(--cyan);font-size:10px;font-weight:850;letter-spacing:.18em}
+    .topline h1{margin:2px 0 0;font-size:18px;letter-spacing:.025em;line-height:1.05}
+    .status{margin-left:auto;padding-left:14px;border-left:1px solid #284e63;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-align:right;line-height:1.5}
+    .status b{color:var(--text)}
+    .controls{display:grid;grid-template-columns:auto auto minmax(110px,1fr) auto;align-items:center;gap:9px;padding:5px;border-radius:9px;background:#0d1c29;border:1px solid #213f51}
+    button{height:38px;padding:0 14px;border:0;border-radius:6px;background:#ff8050;color:#fff;font:850 10px Inter,system-ui,sans-serif;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+    button:hover{filter:brightness(1.1)}button:disabled{opacity:.55;cursor:wait}
+    .secondary{background:#102c3e;border:1px solid #35647c;color:#dff5fc}
+    .secondary.on{background:#0f3b33;border-color:var(--green);color:var(--green)}
+    .vol{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.1em;padding:0 4px}
+    input[type=range]{accent-color:var(--cyan);width:100%}
+    select,input[type=text]{height:34px;background:#0a1824;border:1px solid #2a5068;border-radius:6px;color:var(--text);font:600 12px Inter,system-ui,sans-serif;padding:0 9px;min-width:0}
+    .grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:14px;margin-top:28px}
+    .panel{background:var(--panel);border:1px solid #1f465b;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+    .phead{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #1f465b;color:var(--cyan);font-size:10px;font-weight:850;letter-spacing:.15em}
+    .phead .spacer{flex:1}
+    .phead button{height:26px;padding:0 9px;font-size:9px}
+    .chip-n{color:var(--muted);font-weight:700;letter-spacing:.08em}
+    #transcript{height:400px;overflow-y:auto;padding:4px 0}
+    .empty{padding:28px 18px;color:var(--muted);font-size:12px;line-height:1.55}
+    .empty b{color:var(--text)}
+    .line{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:9px 14px;border-bottom:1px solid #12293a;font-size:13px;line-height:1.45;animation:fade .4s}
+    .line.alert{background:#3a0f17aa;border-left:3px solid var(--red)}
+    .line.located{border-left:3px solid var(--orange)}
+    .line .t{color:#7d9cad;font:700 11px ui-monospace,Menlo,monospace;padding-top:2px}
+    .line .x{color:#d9ebf2;word-wrap:break-word}
+    .line mark{background:#ff864e33;color:#ffb48f;border-radius:3px;padding:0 2px}
+    .line mark.w{background:#ff4e5e40;color:#ff9aa4}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .tag{font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 7px;border-radius:4px;background:#102c3e;border:1px solid #2c5a72;color:#cfeaf5;cursor:default}
+    .tag.loc{cursor:pointer;border-color:#8a4a2c;background:#2e170c;color:#ffb48f}
+    .tag.loc:hover{filter:brightness(1.25)}
+    .tag.kind{border-color:#2c5a72}
+    .tag.al{background:#4a1018;border-color:var(--red);color:#ffc2c8}
+    .tag.pend{color:var(--muted)}
+    @keyframes fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
+    .watch{padding:12px 14px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;max-height:400px}
+    .lbl{color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.14em;margin-bottom:6px;display:flex;justify-content:space-between}
+    .lbl span{color:var(--text)}
+    .row{display:flex;gap:7px;flex-wrap:wrap}
+    .row>*{flex:1}
+    .row button{height:34px;padding:0 10px}
+    .where{font-size:12px;color:#cfe3ec;line-height:1.4;min-height:17px}
+    .chips{display:flex;flex-wrap:wrap;gap:5px}
+    .chips .tag{display:inline-flex;gap:6px;align-items:center}
+    .chips .tag i{font-style:normal;cursor:pointer;color:var(--muted)}
+    .chips .tag i:hover{color:var(--red)}
+    .note{color:#7d9cad;font-size:11px;line-height:1.45}
+    details summary{cursor:pointer;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.14em;list-style:none}
+    details summary::before{content:'▸ '}details[open] summary::before{content:'▾ '}
+    details>div{margin-top:9px;display:flex;flex-direction:column;gap:9px}
+    .mapwrap{position:relative;margin-top:14px;border:1px solid #1f465b;border-radius:12px;overflow:hidden;height:max(460px,calc(100vh - 140px))}
+    #map{position:absolute;inset:0;background:#06111c}
+    #map.picking{cursor:crosshair}
+    .hud{position:absolute;z-index:500;pointer-events:none}
+    .badge{top:12px;left:56px;max-width:300px;padding:10px 12px;border-left:2px solid var(--cyan);border-radius:2px;background:#071522e8;box-shadow:0 8px 22px #0008;backdrop-filter:blur(8px)}
+    .badge b{display:block;color:var(--cyan);font-size:10px;letter-spacing:.13em}
+    .badge span{display:block;margin-top:4px;color:#bed0da;font-size:11px;line-height:1.35}
+    .legend{bottom:22px;left:12px;padding:7px 9px;background:#06131ad9;border-left:2px solid var(--cyan);font-size:9px;font-weight:750;letter-spacing:.06em;color:#bdd4df;display:flex;gap:12px}
+    .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+    .leaflet-container{font-family:Inter,system-ui,sans-serif}
+    .dark-tiles{filter:invert(1) hue-rotate(185deg) brightness(.82) contrast(.9) saturate(.55)}
+    .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#091522;color:var(--text);border:1px solid var(--line)}
+    .leaflet-popup-content{font-size:12px;line-height:1.45;margin:11px 13px}
+    .leaflet-popup-content b{color:var(--orange)}
+    .leaflet-popup-content small{color:var(--muted)}
+    .leaflet-control-attribution{background:#071522cc!important;color:#7d9cad!important}.leaflet-control-attribution a{color:#9fd3e6!important}
+    .leaflet-bar a{background:#0d1c29;color:var(--text);border-color:#213f51}
+    .pulse{width:16px;height:16px;border-radius:50%;background:var(--cyan);border:3px solid #031018;box-shadow:0 0 0 0 #61dcffaa;animation:pulse 2s infinite}
+    @keyframes pulse{70%{box-shadow:0 0 0 14px #61dcff00}100%{box-shadow:0 0 0 0 #61dcff00}}
+    #toast{position:fixed;z-index:3000;top:16px;left:50%;transform:translate(-50%,-140%);transition:transform .35s;width:min(560px,calc(100% - 24px));padding:13px 16px;background:#3a0c14f2;border:1px solid var(--red);border-radius:10px;box-shadow:0 16px 50px #000c;cursor:pointer}
+    #toast.show{transform:translate(-50%,0)}
+    #toast b{display:block;color:#ff9aa4;font-size:10px;letter-spacing:.16em;margin-bottom:5px}
+    #toast span{font-size:13px;line-height:1.45}
+    dialog{width:min(720px,calc(100% - 28px));border:1px solid var(--line);border-radius:14px;padding:0;background:#091522;color:var(--text);box-shadow:0 24px 100px #000}
+    dialog::backdrop{background:#000b}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);color:var(--cyan);font-size:11px;font-weight:850;letter-spacing:.13em}
+    .modal-head button{height:auto;padding:0;background:none;color:var(--text);font-size:22px}
+    .modal-body{padding:15px}.modal-body p{margin:0 0 12px;color:var(--muted);font-size:12px}
+    .modal-body iframe{width:100%;height:290px;border:0;background:#06111c}
+    .maperr{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5;z-index:400}
+    #errbar{display:none;margin-top:10px;padding:9px 12px;border:1px solid var(--red);border-radius:8px;background:#3a0c14;color:#ffc2c8;font-size:12px;line-height:1.4}
+    .bar{height:4px;background:#12293a;border-radius:2px;overflow:hidden;margin-top:6px}.bar div{height:100%;width:0;background:var(--cyan);transition:width .3s}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}.watch{max-height:none}}
+    @media(max-width:840px){body{padding:8px}header{position:relative;top:0;grid-template-columns:1fr;gap:7px;padding:10px 11px}.topline h1{font-size:16px}.controls{grid-template-columns:auto auto 1fr;gap:6px;padding:4px}.controls .vol{grid-column:1/-1;order:5}.status{font-size:9px}button{height:36px;padding:0 9px;font-size:9px}.grid{margin-top:18px}#transcript{height:340px}.badge{left:50px;max-width:220px}.legend{display:none}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topline"><span id="beacon" class="beacon"></span><div><div class="eyebrow">SLO // LIVE OPERATIONS</div><h1>DISPATCH WATCH</h1></div><span class="status"><span id="status">READY</span><br><span id="aiStatus">AI IDLE</span></span></div>
+    <div class="controls">
+      <button id="start" type="button">START LISTENING</button>
+      <button id="alertsBtn" class="secondary" type="button">ENABLE ALERTS</button>
+      <label class="vol">VOL<input id="volume" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+      <button id="fallback" class="secondary" type="button">FALLBACK PLAYER</button>
+    </div>
+  </header>
+
+  <div id="errbar"></div>
+  <section class="grid">
+    <div class="panel">
+      <div class="phead">LIVE TRANSCRIPT <span class="chip-n" id="tCount"></span><span class="spacer"></span><button class="secondary" id="exportBtn" type="button">EXPORT</button><button class="secondary" id="clearBtn" type="button">CLEAR</button></div>
+      <div id="transcript"><div class="empty" id="emptyMsg"><b>Press START LISTENING.</b> The scanner audio is transcribed right here in your browser by a speech-recognition model (downloaded once, then cached). Radio audio is rough, so expect some misheard words — addresses and cross-streets that are recognized get pinned on the map below.</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="phead">YOUR WATCH ZONE</div>
+      <div class="watch">
+        <div>
+          <div class="lbl">LOCATION</div>
+          <div class="row"><button id="geoBtn" type="button">USE MY LOCATION</button><button id="pickBtn" class="secondary" type="button">SELECT ON MAP</button></div>
+          <div class="where" id="where" style="margin-top:8px">No location set.</div>
+        </div>
+        <div>
+          <div class="lbl">ALERT RADIUS <span id="radiusLbl">0.5 mi</span></div>
+          <input id="radius" type="range" min="0.1" max="3" step="0.1" value="0.5">
+        </div>
+        <div>
+          <div class="lbl">WATCHED STREETS & KEYWORDS <span id="watchN"></span></div>
+          <div class="chips" id="chips"><span class="note">Set a location to watch nearby streets. Mentions of these trigger an alert even if the exact spot can't be mapped.</span></div>
+          <div class="row" style="margin-top:8px"><input id="kwInput" type="text" placeholder="Add a street or keyword…"><button id="kwAdd" class="secondary" type="button" style="flex:0 0 auto">ADD</button></div>
+        </div>
+        <details>
+          <summary>SETTINGS</summary>
+          <div>
+            <div><div class="lbl">SPEECH MODEL</div>
+              <select id="model">
+                <option value="onnx-community/whisper-tiny.en">Tiny — fastest, least accurate (~40 MB)</option>
+                <option value="onnx-community/whisper-base.en" selected>Base — balanced (~80 MB)</option>
+                <option value="onnx-community/whisper-small.en">Small — best, needs a fast GPU (~250 MB)</option>
+              </select></div>
+            <div><div class="lbl">VOICE DETECTION SENSITIVITY <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6"></div>
+            <div><div class="lbl">TEST A PHRASE</div><div class="row"><input id="testInput" type="text" placeholder="e.g. 415 at 1200 Higuera"><button id="testBtn" class="secondary" type="button" style="flex:0 0 auto">RUN</button></div></div>
+            <div class="note" id="streetNote">Loading county street names…</div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="mapwrap">
+    <div id="map"></div>
+    <div class="hud badge"><b>DISPATCH MAP // SLO COUNTY</b><span id="mapHint">Pinned locations heard on the scanner. Click a pin for the transcript.</span></div>
+    <div class="hud legend"><span><i style="background:var(--orange)"></i>ADDRESS / CROSS-STREET</span><span><i style="background:#c9a24a"></i>STREET ONLY</span><span><i style="background:var(--red)"></i>IN YOUR ZONE</span></div>
+  </section>
+
+  <div id="toast"><b>⚠ POLICE ACTIVITY NEAR YOU</b><span id="toastText"></span></div>
+
+  <dialog id="fallbackDialog"><div class="modal-head">BROADCASTIFY FALLBACK PLAYER<button id="closeDialog" type="button" aria-label="Close">×</button></div><div class="modal-body"><p>Use this player when the direct stream is blocked by the browser. (Transcription only works with the main player.)</p><iframe title="SLO County Public Safety audio player" src="https://www.broadcastify.com/listen/feed/popout.php?feedId=44069" allow="autoplay"></iframe></div></dialog>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const STREAM='https://hls-o2.broadcastify.com/t/v1./feed/44069/playlist.m3u8';
+const BBOX={s:34.89,w:-121.35,n:35.80,e:-119.47};           // San Luis Obispo County
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+const MILE=1609.34;
+
+const TOWNS={ // approximate town centres, used to bias geocoding
+ 'san luis obispo':[35.2828,-120.6596],'slo':[35.2828,-120.6596],'cal poly':[35.3050,-120.6625],
+ 'paso robles':[35.6266,-120.6910],'paso':[35.6266,-120.6910],'atascadero':[35.4894,-120.6707],'templeton':[35.5497,-120.7060],
+ 'morro bay':[35.3658,-120.8499],'los osos':[35.3111,-120.8324],'baywood':[35.3240,-120.8340],'cambria':[35.5641,-121.0807],'cayucos':[35.4428,-120.8921],
+ 'pismo beach':[35.1428,-120.6413],'pismo':[35.1428,-120.6413],'shell beach':[35.1555,-120.6713],'grover beach':[35.1216,-120.6210],'grover':[35.1216,-120.6210],
+ 'arroyo grande':[35.1186,-120.5907],'oceano':[35.0989,-120.6124],'nipomo':[35.0428,-120.4760],'avila beach':[35.1797,-120.7317],'avila':[35.1797,-120.7317],
+ 'santa margarita':[35.3900,-120.6085],'san miguel':[35.7525,-120.6963],'creston':[35.5190,-120.5240],'shandon':[35.6550,-120.3750],'san simeon':[35.6436,-121.1900],
+ 'edna':[35.2000,-120.6100],'cuesta':[35.3290,-120.6740],'los ranchos':[35.2420,-120.6250]
+};
+const TOWN_FULL={'slo':'San Luis Obispo','cal poly':'San Luis Obispo','paso':'Paso Robles','pismo':'Pismo Beach','grover':'Grover Beach','avila':'Avila Beach','baywood':'Los Osos','cuesta':'San Luis Obispo','los ranchos':'San Luis Obispo','edna':'San Luis Obispo'};
+const townName=t=>TOWN_FULL[t]||t.replace(/\b\w/g,c=>c.toUpperCase());
+const HIGHWAYS={'101':'US 101','1':'CA 1','46':'CA 46','41':'CA 41','58':'CA 58','227':'CA 227','166':'CA 166','135':'CA 135'};
+
+// Built-in fallback street list; the full county list is loaded from OpenStreetMap at runtime.
+const BUILTIN_STREETS=`Higuera Street|Marsh Street|Monterey Street|Santa Rosa Street|Foothill Boulevard|Broad Street|Johnson Avenue|Osos Street|Chorro Street|Morro Street|Garden Street|Nipomo Street|Palm Street|Mill Street|Pacific Street|Pismo Street|Buchon Street|Islay Street|Madonna Road|Los Osos Valley Road|Tank Farm Road|Orcutt Road|Laurel Lane|Grand Avenue|California Boulevard|Santa Barbara Avenue|South Street|King Street|Prado Road|Bishop Street|Augusta Street|Sierra Way|Ella Street|Ramona Drive|Casa Street|Murray Avenue|Highland Drive|Patricia Drive|Mustang Drive|Slack Street|Hathway Avenue|Stenner Street|Ferrini Road|Spring Street|Niblick Road|Creston Road|Vine Street|Riverside Avenue|Park Street|Pine Street|El Camino Real|Morro Road|Traffic Way|Las Tablas Road|Vineyard Drive|Main Street|Bennett Way|Quintana Road|Harbor Street|Embarcadero|Atascadero Avenue|Shell Beach Road|Price Street|Dolliver Street|Oak Park Boulevard|Halcyon Road|Brisco Road|Fair Oaks Avenue|Branch Street|Tefft Street|Thompson Avenue|Frontage Road|Mesa Road|Willow Road|Pomeroy Road|South Bay Boulevard|Ravenna Avenue|Santa Ysabel Avenue|Pecho Valley Road|Bay Boulevard|Burton Drive|Ardath Drive|Moonstone Beach Drive|Ocean Avenue|Avila Beach Drive|San Luis Bay Drive|Ontario Road|Grand Avenue|Pier Avenue|Front Street|Hinds Avenue|Cypress Street|West Branch Street|Traffic Way|Ramada Drive|Rossi Road|Buckley Road|Edna Road|Higuera Street|Bello Street|Sunset Drive|Theatre Drive|Golden Hill Road|Union Road|Airport Road|Sherwood Road|Black Oak Drive|Santa Fe Road|Prefumo Canyon Road|Descanso Street|Calle Joaquin|Elks Lane|Industrial Way|Suburban Road|Poinsettia Street|Oceanaire Drive|Royal Way|Perfumo Canyon Road|Grand Avenue|Mattie Road|Cienaga Street|Strother Road|Willow Road|Tefft Street|Thompson Road|Division Street|Camino Caballo|Sandydale Drive|Pacific Boulevard|Highway 1|Halcyon Road|Atascadero Road|Kennedy Way|Cuesta Drive|Grove Street|Lizzie Street|Fixlini Street|Flora Street|Toro Street|Peach Street|Walnut Street|Leff Street|Pepper Street|Phillips Lane|Benton Way|Ferrini Road|Cerro Romauldo Avenue|Felton Way|Patricia Drive|Rachel Street|Woodside Drive|Margarita Avenue|Meinecke Avenue|Ruth Street|Santa Lucia Avenue|Valley Vista Drive|Spooner Drive|Laurel Lane|Southwood Drive|Bushnell Street|Sinsheimer Park|Brook Street|Wilding Lane`;
+
+// Spoken incident types -> label
+const KINDS=[
+ [/\b(11[- ]?8[0-3]|collision|crash|t[- ]?bone|rollover|vehicle (?:vs|versus)|hit and run|20001|20002|accident)\b/i,'COLLISION'],
+ [/\b(structure fire|vehicle fire|vegetation fire|brush fire|smoke|flames|fire alarm)\b/i,'FIRE'],
+ [/\b(shots? fired|gun|firearm|weapon|knife|stabb|246|245|417)\b/i,'WEAPON'],
+ [/\b(domestic|273\.?5|415|disturbance|fight|argument|yelling)\b/i,'DISTURBANCE'],
+ [/\b(211|robbery)\b/i,'ROBBERY'],
+ [/\b(459|burglary|break[- ]in)\b/i,'BURGLARY'],
+ [/\b(484|488|10851|theft|stolen|shoplift)\b/i,'THEFT'],
+ [/\b(23152|23153|dui|drunk driver|reckless)\b/i,'DUI / RECKLESS'],
+ [/\b(medical|unconscious|not breathing|overdose|chest pain|fall|seizure|ambulance)\b/i,'MEDICAL'],
+ [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],
+ [/\b(welfare check|5150|missing)\b/i,'WELFARE CHECK'],
+ [/\b(alarm)\b/i,'ALARM'],
+ [/\b(trespass|602)\b/i,'TRESPASS'],
+ [/\b(vandal|594|graffiti)\b/i,'VANDALISM'],
+ [/\b(pursuit|fleeing|evading|2800)\b/i,'PURSUIT'],
+ [/\b(traffic stop|11[- ]?95|10[- ]?38)\b/i,'TRAFFIC STOP'],
+];
+
+/* ============================================================
+   SMALL HELPERS
+   ============================================================ */
+// Show unexpected errors on the page instead of failing silently (useful on phones with no console).
+function showErr(msg){const b=document.getElementById('errbar');if(!b)return;b.style.display='block';b.textContent='Problem: '+msg}
+window.addEventListener('error',e=>{if(e.message&&e.message!=='Script error.')showErr(e.message)});
+window.addEventListener('unhandledrejection',e=>console.warn('unhandled',e.reason));
+// AbortSignal.timeout is missing on older iOS; build it by hand.
+function timeoutSignal(ms){if(window.AbortSignal&&AbortSignal.timeout)return AbortSignal.timeout(ms);const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal}
+const IS_PHONE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmtTime=d=>d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\"]/g,'\\$&');
+function dist(a,b){const R=6371000,toR=x=>x*Math.PI/180,dLa=toR(b[0]-a[0]),dLo=toR(b[1]-a[1]);const h=Math.sin(dLa/2)**2+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let best=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));best=Math.min(best,c[j])}if(best>max)return max+1;p=c}return p[b.length]}
+
+/* ============================================================
+   STREET INDEX  (spoken text -> canonical OSM street name)
+   ============================================================ */
+const SUFFIX={street:1,st:1,road:1,rd:1,avenue:1,ave:1,av:1,drive:1,dr:1,lane:1,ln:1,way:1,court:1,ct:1,place:1,pl:1,boulevard:1,blvd:1,circle:1,cir:1,parkway:1,pkwy:1,highway:1,hwy:1,trail:1,terrace:1,loop:1,canyon:0,grade:1};
+const DIRS={north:1,south:1,east:1,west:1,n:1,s:1,e:1,w:1};
+// Base names that are also ordinary words: only accepted with a house number, a street suffix, or as part of a cross-street.
+const COMMON=new Set('park pine oak main grand bay south north east west high mesa price spring branch ocean front willow union center church college market river lake hill hills view valley vista sunset sunrise central division industrial airport broad garden palm mill pacific king morro walnut peach flora grove pepper vine field orange lemon cherry olive cedar elm maple ash ridge creek canyon station rail railroad short long first second third fourth fifth sixth seventh eighth ninth tenth state school traffic fire police emergency medical ocean beach'.split(' '));
+// Town names also need a suffix/number to count as a street ("Atascadero" alone is the town, not Atascadero Road).
+for(const t of Object.keys(TOWNS))COMMON.add(t);
+const STOP=new Set('| the a an and at of to on in is be on by for or with unit units copy clear code ten'.split(' '));
+let streetIndex=new Map(); // base -> canonical
+let streetBases=[];        // list of bases for fuzzy matching
+function baseOf(name){
+  const t=name.toLowerCase().replace(/['’.]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);
+  while(t.length>1&&DIRS[t[0]])t.shift();
+  while(t.length>1&&SUFFIX[t[t.length-1]]===1)t.pop();
+  return t.join(' ');
+}
+function buildStreetIndex(names){
+  streetIndex=new Map();
+  for(const n of names){const b=baseOf(n);if(!b||b.length<3||/^\d+$/.test(b)||STOP.has(b))continue;
+    if(!streetIndex.has(b)||n.length<streetIndex.get(b).length)streetIndex.set(b,n);}
+  streetBases=[...streetIndex.keys()];
+  $('streetNote').textContent=`${streetIndex.size.toLocaleString()} county street names loaded for address matching.`;
+}
+async function overpass(q){
+  let lastErr;
+  for(const url of OVERPASS){
+    try{const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:timeoutSignal(q.includes('out:csv')?130000:25000)});
+      if(!r.ok)throw new Error('HTTP '+r.status);return await (q.includes('out:csv')?r.text():r.json());}
+    catch(e){lastErr=e}
+  }
+  throw lastErr;
+}
+async function loadStreets(){
+  buildStreetIndex(BUILTIN_STREETS.split('|'));
+  const cached=store.get('sloStreets_v1',null);
+  if(cached&&Date.now()-cached.t<30*864e5){buildStreetIndex(cached.names.concat(BUILTIN_STREETS.split('|')));return}
+  try{
+    const txt=await overpass(`[out:csv(name;false)][timeout:120];way["highway"]["name"](${BBOX.s},${BBOX.w},${BBOX.n},${BBOX.e});out tags;`);
+    const names=[...new Set(txt.split('\n').map(s=>s.trim()).filter(Boolean))];
+    if(names.length>200){store.set('sloStreets_v1',{t:Date.now(),names});buildStreetIndex(names.concat(BUILTIN_STREETS.split('|')))}
+  }catch(e){console.warn('street list',e);$('streetNote').textContent=`Using built-in list of ${streetIndex.size} major streets (OpenStreetMap unavailable).`}
+}
+
+/* ---- spoken numbers -> digits ("twelve hundred", "fourteen twenty", "one two three") ---- */
+const ONES={zero:0,oh:0,o:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+const TENS={twenty:20,thirty:30,forty:40,fourty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+function wordsToDigits(tokens){
+  const out=[];let i=0;
+  const isNum=w=>w in ONES||w in TENS||w==='hundred'||w==='thousand';
+  while(i<tokens.length){
+    if(!isNum(tokens[i])||tokens[i]==='o'){out.push(tokens[i]);i++;continue}
+    let j=i;while(j<tokens.length&&(isNum(tokens[j]))&&j-i<8)j++;
+    const seq=tokens.slice(i,j);
+    let val=null;
+    if(seq.includes('hundred')||seq.includes('thousand')){
+      let total=0,cur=0;for(const w of seq){if(w in ONES)cur+=ONES[w];else if(w in TENS)cur+=TENS[w];else if(w==='hundred')cur=(cur||1)*100;else if(w==='thousand'){total+=(cur||1)*1000;cur=0}}val=String(total+cur);
+    }else if(seq.every(w=>w in ONES&&ONES[w]<10)&&seq.length>1){val=seq.map(w=>ONES[w]).join('')}
+    else{ // pairs: "fourteen twenty" -> 1420, "twenty five" -> 25
+      const parts=[];let k=0;while(k<seq.length){let v=seq[k]in TENS?TENS[seq[k]]:ONES[seq[k]];if(seq[k]in TENS&&k+1<seq.length&&seq[k+1]in ONES&&ONES[seq[k+1]]<10&&ONES[seq[k+1]]>0){v+=ONES[seq[k+1]];k++}parts.push(v);k++}
+      val=parts.map((v,ix)=>ix>0&&v<10?'0'+v:String(v)).join('');
+    }
+    out.push(val);i=j;
+  }
+  return out;
+}
+function tokenize(text){
+  const raw=text.toLowerCase().replace(/(\d),(\d)/g,'$1$2').replace(/&/g,' and ').replace(/[,.;:!?]+/g,' | ').replace(/[^a-z0-9|\- ]/g,' ').split(/\s+/).filter(Boolean);
+  const split=[];for(const t of raw){if(/^\d+-\d+$/.test(t))split.push(t);else split.push(...t.split('-').filter(Boolean))}
+  // merge digit-by-digit reads: "2 3 5" -> "235"
+  const out=[];for(const t of wordsToDigits(split)){if(/^\d$/.test(t)&&out.length&&/^\d{1,4}$/.test(out[out.length-1])&&out._digits){out[out.length-1]+=t}else{out.push(t)}out._digits=/^\d$/.test(t)}
+  return out;
+}
+function matchStreetAt(tok,i){
+  for(let n=Math.min(4,tok.length-i);n>=1;n--){
+    let words=tok.slice(i,i+n);
+    if(words.some(w=>STOP.has(w)))continue;
+    const cand=words.join(' ');
+    let base=null,fuzzy=false;
+    if(streetIndex.has(cand))base=cand;
+    else if(cand.length>=6){
+      const max=cand.length>=9?2:1;let best=max+1;
+      for(const b of streetBases){if(b[0]!==cand[0]&&cand.length<9)continue;const d=lev(cand,b,max);if(d<best){best=d;base=b}}
+      if(best>max)base=null;else fuzzy=true;
+    }
+    if(!base)continue;
+    let len=n;const hasSuffix=i+n<tok.length&&SUFFIX[tok[i+n]]!==undefined;if(hasSuffix)len++;
+    return{base,canon:streetIndex.get(base),len,hasSuffix,common:COMMON.has(base)||base.length<5,fuzzy,words:tok.slice(i,i+len)};
+  }
+  return null;
+}
+function findTown(tok){
+  const s=' '+tok.join(' ')+' ';let found=null;
+  for(const t of Object.keys(TOWNS).sort((a,b)=>b.length-a.length)){if(s.includes(' '+t+' ')){found=t;break}}
+  return found;
+}
+/* Extract locations from one transmission. Returns list sorted best-first. */
+function extract(text){
+  const tok=tokenize(text);const found=[];const used=new Set();
+  const take=(i,len)=>{for(let k=i;k<i+len;k++)used.add(k)};
+  const hwyAt=(i)=>{ // "highway 101", "101 northbound"
+    if(['highway','hwy','route','freeway','sr','interstate'].includes(tok[i])&&HIGHWAYS[tok[i+1]])return{ref:HIGHWAYS[tok[i+1]],len:2,words:tok.slice(i,i+2)};
+    if(tok[i]==='101')return{ref:'US 101',len:1,words:['101']};
+    return null;
+  };
+  for(let i=0;i<tok.length;i++){
+    if(used.has(i))continue;
+    // 1) house number + street
+    if(/^\d{2,5}$/.test(tok[i])&&!/^10$/.test(tok[i])){
+      let j=i+1;if(tok[j]==='block'){j++;if(tok[j]==='of')j++}if(tok[j]==='hundred'&&tok[j+1]==='block'){j+=2;if(tok[j]==='of')j++}
+      if(DIRS[tok[j]])j++;
+      const m=matchStreetAt(tok,j);
+      // "1183 Foothill and Santa Rosa" = code 11-83 + cross street, not a house number
+      const codeLike=/^1[01]\d\d$/.test(tok[i])&&m&&['and','at'].includes(tok[j+m.len])&&matchStreetAt(tok,j+m.len+1);
+      if(m&&!codeLike){found.push({type:'address',num:tok[i],street:m.canon,base:m.base,spoken:m.hasSuffix?m.canon:m.base.replace(/\b\w/g,c=>c.toUpperCase()),label:`${tok[i]} ${m.canon}`,score:3,words:[tok[i],...m.words]});take(i,j-i+m.len);i=j+m.len-1;continue}
+    }
+    // 2) street (or highway) possibly followed by "and/at" cross street
+    const h=hwyAt(i);const m=h?null:matchStreetAt(tok,i);
+    const first=h?{canon:h.ref,base:h.ref,len:h.len,hwy:true,words:h.words}:m;
+    if(!first)continue;
+    let k=i+first.len;
+    while(/^(north|south|east|west)bound$|^(nb|sb|eb|wb)$/.test(tok[k]||''))k++;
+    if(['and','at','near','by','off'].includes(tok[k])&&k+1<tok.length){
+      const h2=hwyAt(k+1);const m2=h2?null:matchStreetAt(tok,k+1);
+      const second=h2?{canon:h2.ref,base:h2.ref,len:h2.len,hwy:true,words:h2.words}:m2;
+      if(second&&second.base!==first.base&&!(second.common&&!second.hasSuffix&&!second.hwy&&second.fuzzy)){
+        found.push({type:'cross',a:first.canon,b:second.canon,aHwy:!!first.hwy,bHwy:!!second.hwy,label:`${first.canon} & ${second.canon}`,score:2.5,words:[...first.words,...second.words]});
+        take(i,k+1-i+second.len);i=k+second.len;continue;
+      }
+    }
+    if(k>i+first.len)k=i+first.len;
+    if(first.hwy||(m&&(!m.common||m.hasSuffix)&&!(m.fuzzy&&!m.hasSuffix))){
+      found.push({type:'street',street:first.canon,hwy:!!first.hwy,label:first.canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=k-1;
+    }
+  }
+  const town=findTown(tok.filter((_,ix)=>!used.has(ix)));
+  found.sort((a,b)=>b.score-a.score);
+  return{locs:found,town,tokens:tok};
+}
+function kindsOf(text){return KINDS.filter(([re])=>re.test(text)).map(([,l])=>l).slice(0,2)}
+
+/* ============================================================
+   GEOCODING  (Nominatim for addresses, Overpass for intersections/streets)
+   ============================================================ */
+const geoCache=new Map();
+let nomChain=Promise.resolve();
+function nominatim(params){ // serialised + rate limited to 1 req/s per usage policy
+  const p=nomChain.then(async()=>{
+    const u=new URL('https://nominatim.openstreetmap.org/search');
+    Object.entries({format:'jsonv2',limit:'1',countrycodes:'us',bounded:'1',viewbox:`${BBOX.w},${BBOX.n},${BBOX.e},${BBOX.s}`,...params}).forEach(([k,v])=>u.searchParams.set(k,v));
+    try{const r=await fetch(u,{signal:timeoutSignal(15000)});const j=r.ok?await r.json():[];await sleep(1100);return j}catch(e){await sleep(1100);throw e}
+  });nomChain=p.catch(()=>{});return p;
+}
+function areaFilter(town){if(town&&TOWNS[town]){const[la,lo]=TOWNS[town];return`(around:9000,${la},${lo})`}return`(${BBOX.s},${BBOX.w},${BBOX.n},${BBOX.e})`}
+function wayFilter(name,isHwy,town){
+  if(isHwy)return`way["highway"]["ref"~"(^|;)${reEsc(name)}(;|$)"]${areaFilter(town)}`;
+  const b=baseOf(name);return`way["highway"]["name"~"^(north |south |east |west )?${reEsc(b)}( |$)",i]${areaFilter(town)}`;
+}
+async function geocode(loc,town){
+  const key=JSON.stringify([loc.label,town]);if(geoCache.has(key))return geoCache.get(key);
+  let res=null;
+  try{
+    if(loc.type==='address'){
+      // Use the street as spoken (no guessed suffix), and the town heard on the radio if any.
+      const p={street:`${loc.num} ${loc.spoken||loc.street}`,state:'California'};if(town)p.city=townName(town);
+      let r=await nominatim(p);
+      if(!r.length&&!town){p.street=`${loc.num} ${loc.street}`;r=await nominatim(p)}
+      if(r.length){
+        res={lat:+r[0].lat,lon:+r[0].lon,precise:true,name:r[0].display_name.split(',').slice(0,3).join(',')};
+        if(town&&TOWNS[town]&&dist(TOWNS[town],[res.lat,res.lon])>12000)res=null; // wrong town
+        const parts=r[0].display_name.split(',').map(x=>x.trim());const label=/^\d+$/.test(parts[0])?`${parts[0]} ${parts[1]}`:parts[0];if(res)loc.label=label;
+      }
+      if(!res)
+res=await geocode({type:'street',street:loc.street,label:loc.street},town);
+    }else if(loc.type==='cross'){
+      const q=`[out:json][timeout:25];${wayFilter(loc.a,loc.aHwy,town)}->.a;${wayFilter(loc.b,loc.bHwy,town)}->.b;node(w.a)(w.b)->.x;.x out 1;node(w.b)(around.a:60);out 1;`;
+      const r=await overpass(q);
+      if(r.elements&&r.elements.length){const e=r.elements[0];res={lat:e.lat,lon:e.lon,precise:true,name:loc.label}}
+      else res=await geocode({type:'street',street:loc.b,hwy:loc.bHwy,label:loc.b},town)||await geocode({type:'street',street:loc.a,hwy:loc.aHwy,label:loc.a},town);
+    }else if(loc.type==='street'){
+      const r=await overpass(`[out:json][timeout:25];${wayFilter(loc.street,loc.hwy,town)};out center 30;`);
+      const els=(r.elements||[]).filter(e=>e.center);
+      if(els.length){
+        const ref=town&&TOWNS[town]?TOWNS[town]:null;
+        let lat,lon;
+        if(ref){els.sort((a,b)=>dist(ref,[a.center.lat,a.center.lon])-dist(ref,[b.center.lat,b.center.lon]));({lat,lon}=els[0].center)}
+        else{lat=els.reduce((s,e)=>s+e.center.lat,0)/els.length;lon=els.reduce((s,e)=>s+e.center.lon,0)/els.length}
+        // too spread out (same name in several towns) and no town context -> not mappable
+        const spread=Math.max(...els.map(e=>dist([lat,lon],[e.center.lat,e.center.lon])));
+        if(ref||spread<4000)res={lat,lon,precise:false,name:loc.street+(town?`, ${town}`:'')};
+      }
+    }
+  }catch(e){console.warn('geocode',e)}
+  geoCache.set(key,res);return res;
+}
+
+/* ============================================================
+   MAP
+   ============================================================ */
+// If the map library can't load (blocked network, offline, in-app file preview), keep everything else working.
+const MAP_OK=!!window.L;
+if(!MAP_OK){
+  const NOOP=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>'':NOOP,apply:()=>NOOP});
+  window.L=NOOP;
+  document.getElementById('map').innerHTML='<div class="maperr">The map couldn\'t load here. Open this page from its web address (for example GitHub Pages) in Safari or Chrome. Transcripts and alerts still work.</div>';
+}
+const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([35.30,-120.66],11);
+// OpenStreetMap tiles (full street names) darkened with a CSS filter to match the theme.
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'dark-tiles',attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const incidentLayer=L.layerGroup().addTo(map);
+let me=null,meMarker=null,meCircle=null,picking=false;
+const incidents=[]; // {lat,lon,marker,time,text,label,precise,inZone}
+
+function markerStyle(inc){return{radius:inc.precise?8:7,color:inc.inZone?'#ff4e5e':(inc.precise?'#ff864e':'#c9a24a'),weight:2,fillColor:inc.inZone?'#ff4e5e':(inc.precise?'#ff864e':'#c9a24a'),fillOpacity:inc.precise?.55:.25,dashArray:inc.precise?null:'3 3'}}
+function addIncident(entry,loc,g){
+  const inc={lat:g.lat,lon:g.lon,precise:g.precise,label:loc.label,place:g.name,time:entry.time,text:entry.text,kinds:entry.kinds,inZone:false};
+  inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());
+  inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer)
+    .bindPopup(`<b>${esc(inc.label)}</b>${inc.kinds.length?' · '+esc(inc.kinds.join(', ')):''}<br><small>${fmtTime(inc.time)} · ${inc.precise?'mapped location':'approximate — street only'}</small><br>“${esc(inc.text)}”`);
+  if(!g.precise)inc.halo=L.circle([inc.lat,inc.lon],{radius:450,color:'#c9a24a',weight:1,opacity:.4,fillOpacity:.05,interactive:false}).addTo(incidentLayer);
+  incidents.push(inc);
+  if(incidents.length>300){const old=incidents.shift();incidentLayer.removeLayer(old.marker);old.halo&&incidentLayer.removeLayer(old.halo)}
+  return inc;
+}
+// fade older pins
+setInterval(()=>{const now=Date.now();for(const inc of incidents){const age=(now-inc.time)/36e5;inc.marker.setStyle({opacity:Math.max(.25,1-age*.5),fillOpacity:Math.max(.08,(inc.precise?.55:.25)*(1-age*.5))})}},60000);
+
+/* ============================================================
+   WATCH ZONE
+   ============================================================ */
+const radiusM=()=>parseFloat($('radius').value)*MILE;
+let watchStreets=[]; // {name, base, auto}
+function renderChips(){
+  const c=$('chips');
+  if(!watchStreets.length){c.innerHTML='<span class="note">Set a location to watch nearby streets. Mentions of these trigger an alert even if the exact spot can\'t be mapped.</span>';$('watchN').textContent='';return}
+  c.innerHTML=watchStreets.map((w,i)=>`<span class="tag">${esc(w.name)}<i data-i="${i}" title="Remove">×</i></span>`).join('');
+  $('watchN').textContent=watchStreets.length;
+  store.set('watchCustom',watchStreets.filter(w=>!w.auto).map(w=>w.name));
+  store.set('watchRemoved',[...removedAuto]);
+}
+let removedAuto=new Set(store.get('watchRemoved',[]));
+$('chips').addEventListener('click',e=>{const i=e.target.dataset.i;if(i==null)return;const w=watchStreets[+i];if(w.auto)removedAuto.add(w.name);watchStreets.splice(+i,1);renderChips()});
+function addKeyword(name,auto=false){name=name.trim();if(!name)return;const base=baseOf(name)||name.toLowerCase();if(watchStreets.some(w=>w.base===base))return;watchStreets.push({name,base,auto});}
+$('kwAdd').onclick=()=>{addKeyword($('kwInput').value);$('kwInput').value='';renderChips()};
+$('kwInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('kwAdd').click()});
+
+async function setLocation(lat,lon,how){
+  me=[lat,lon];store.set('myLoc',{lat,lon});
+  if(!meMarker){meMarker=L.marker(me,{icon:L.divIcon({className:'',html:'<div class="pulse"></div>',iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000}).addTo(map);meCircle=L.circle(me,{radius:radiusM(),color:'#61dcff',weight:1.5,fillColor:'#61dcff',fillOpacity:.08}).addTo(map)}
+  else{meMarker.setLatLng(me);meCircle.setLatLng(me)}
+  meCircle.setRadius(radiusM());
+  map.fitBounds(meCircle.getBounds(),{maxZoom:15,padding:[30,30]});
+  $('where').textContent=`${how} · ${lat.toFixed(5)}, ${lon.toFixed(5)} — finding nearby streets…`;
+  recheckZone();
+  await refreshNearbyStreets();
+}
+async function refreshNearbyStreets(){
+  if(!me)return;
+  const r=Math.min(radiusM(),1200);
+  try{
+    const data=await overpass(`[out:json][timeout:25];way["highway"]["name"]["highway"!~"footway|path|cycleway|service|track|steps"](around:${Math.round(r)},${me[0]},${me[1]});out tags;`);
+    const names=[...new Set((data.elements||[]).map(e=>e.tags.name).filter(n=>!/[()]/.test(n)))].sort();
+    watchStreets=watchStreets.filter(w=>!w.auto);
+    names.filter(n=>!removedAuto.has(n)).slice(0,40).forEach(n=>addKeyword(n,true));
+    renderChips();
+    $('where').textContent=`${names.length?'Near '+names.slice(0,3).join(', '):'Location set'} · ${me[0].toFixed(4)}, ${me[1].toFixed(4)}`;
+  }catch(e){$('where').textContent=`Location set · ${me[0].toFixed(4)}, ${me[1].toFixed(4)} (couldn't load nearby streets — add them manually)`;renderChips()}
+}
+function recheckZone(){for(const inc of incidents){inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());inc.marker.setStyle(markerStyle(inc))}}
+$('geoBtn').onclick=()=>{
+  if(!navigator.geolocation){$('where').textContent='Geolocation is not available in this browser — use SELECT ON MAP.';return}
+  $('where').textContent='Requesting your location…';
+  navigator.geolocation.getCurrentPosition(p=>setLocation(p.coords.latitude,p.coords.longitude,'GPS'),err=>{$('where').textContent='Location denied or unavailable — use SELECT ON MAP instead.'},{enableHighAccuracy:true,timeout:15000});
+};
+$('pickBtn').onclick=()=>{picking=!picking;$('pickBtn').classList.toggle('on',picking);$('map').classList.toggle('picking',picking);$('mapHint').textContent=picking?'Click anywhere on the map to set your watch location.':'Pinned locations heard on the scanner. Click a pin for the transcript.';if(picking)$('map').scrollIntoView({behavior:'smooth',block:'center'})};
+map.on('click',e=>{if(!picking)return;picking=false;$('pickBtn').classList.remove('on');$('map').classList.remove('picking');$('mapHint').textContent='Pinned locations heard on the scanner. Click a pin for the transcript.';setLocation(e.latlng.lat,e.latlng.lng,'Map pick')});
+let radiusTimer;
+$('radius').oninput=()=>{const v=parseFloat($('radius').value);$('radiusLbl').textContent=v+' mi';store.set('radius',v);if(meCircle)meCircle.setRadius(radiusM());recheckZone();clearTimeout(radiusTimer);radiusTimer=setTimeout(refreshNearbyStreets,900)};
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+let alertsOn=store.get('alertsOn',false),swReg=null;
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').then(r=>swReg=r).catch(()=>{});
+function paintAlertsBtn(){$('alertsBtn').textContent=alertsOn?'ALERTS ON':'ENABLE ALERTS';$('alertsBtn').classList.toggle('on',alertsOn)}
+$('alertsBtn').onclick=async()=>{
+  if(!alertsOn&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}
+  if(!alertsOn&&!('Notification'in window)&&IS_PHONE)showErr('On iPhone, pop-up notifications need this site added to your Home Screen (Share → Add to Home Screen). On-page alerts and sounds still work.');
+  alertsOn=!alertsOn;store.set('alertsOn',alertsOn);paintAlertsBtn();if(alertsOn)beep(1);
+};
+let toastTimer;
+function beep(n=3){try{const c=getCtx();const t=c.currentTime;for(let i=0;i<n;i++){const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=i%2?660:880;g.gain.setValueAtTime(0,t+i*.22);g.gain.linearRampToValueAtTime(.12,t+i*.22+.01);g.gain.linearRampToValueAtTime(0,t+i*.22+.18);o.connect(g).connect(c.destination);o.start(t+i*.22);o.stop(t+i*.22+.2)}}catch{}}
+function raiseAlert(title,body,latlon){
+  $('toast').querySelector('b').textContent='⚠ '+title;$('toastText').textContent=body;$('toast').classList.add('show');
+  $('toast').onclick=()=>{$('toast').classList.remove('show');if(latlon){map.setView(latlon,16);$('map').scrollIntoView({behavior:'smooth',block:'center'})}};
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),15000);
+  if(!alertsOn)return;
+  beep(4);navigator.vibrate&&navigator.vibrate([200,100,200]);
+  if('Notification'in window&&Notification.permission==='granted'){
+    const opts={body,tag:'slo-dispatch',renotify:true,icon:'icon-192.png'};
+    (swReg?swReg.showNotification(title,opts):Promise.reject()).catch(()=>{try{new Notification(title,opts)}catch{}});
+  }
+}
+
+/* ============================================================
+   TRANSCRIPT PIPELINE
+   ============================================================ */
+const lines=[];let lastTown=null,lastTownAt=0;
+function highlight(text,words,watchHits){
+  let html=esc(text);
+  const mark=(w,cls)=>{if(!w||w.length<3)return;const re=new RegExp(`\\b(${reEsc(esc(w))})\\b`,'ig');html=html.replace(re,`<mark${cls?` class="${cls}"`:''}>$1</mark>`)};
+  watchHits.forEach(w=>mark(w,'w'));
+  words.forEach(w=>{if(!/^\d+$/.test(w)||w.length>=3)mark(w)});
+  return html;
+}
+function watchMatches(text){
+  const tok=tokenize(text),s=' '+tok.join(' ')+' ';const hits=[];
+  for(const w of watchStreets){
+    if(s.includes(' '+w.base+' ')){if(!COMMON.has(w.base)||s.includes(' '+w.base+' '+(w.name.split(' ').pop()||'').toLowerCase())||w.base.includes(' '))hits.push(w)}
+  }
+  return hits;
+}
+async function handleTranscript(text,when=new Date()){
+  text=text.replace(/\s+/g,' ').trim();if(!text)return;
+  $('emptyMsg')&&$('emptyMsg').remove();
+  const {locs,town}=extract(text);
+  if(town){lastTown=town;lastTownAt=Date.now()}
+  const ctxTown=town||(Date.now()-lastTownAt<5*60e3?lastTown:null);
+  const kinds=kindsOf(text);
+  const hits=watchMatches(text);
+  const entry={time:when,text,kinds,locs,town:ctxTown,results:[],alert:false};lines.push(entry);
+  const el=document.createElement('div');el.className='line';
+  const words=locs.flatMap(l=>l.words);
+  const render=()=>{
+    el.className='line'+(entry.alert?' alert':entry.results.length?' located':'');
+    const tags=[...kinds.map(k=>`<span class="tag kind">${k}</span>`),
+      ...(entry.alert?[`<span class="tag al">IN YOUR ZONE</span>`]:[]),
+      ...hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
+      ...entry.results.map((r,i)=>`<span class="tag loc" data-r="${i}">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}</span>`),
+      ...(entry.pending?[`<span class="tag pend">locating ${esc(locs[0].label)}…</span>`]:[]),
+      ...(!entry.pending&&locs.length&&!entry.results.length?[`<span class="tag pend">couldn't map ${esc(locs[0].label)}</span>`]:[])];
+    el.innerHTML=`<div class="t">${fmtTime(when)}</div><div class="x">${highlight(text,words,hits.map(h=>h.base))}${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`;
+  };
+  el.addEventListener('click',e=>{const i=e.target.dataset.r;if(i==null)return;const r=entry.results[+i];map.setView([r.lat,r.lon],16);r.inc.marker.openPopup();$('map').scrollIntoView({behavior:'smooth',block:'center'})});
+  entry.pending=locs.length>0;render();
+  const box=$('transcript');const atTop=box.scrollTop<40;box.prepend(el);if(atTop)box.scrollTop=0;
+  while(box.children.length>400)box.lastChild.remove();
+  $('tCount').textContent=`· ${lines.length}`;
+
+  if(hits.length){entry.alert=true;render();raiseAlert('WATCHED STREET MENTIONED',`${hits.map(h=>h.name).join(', ')} — “${text}”`,null)}
+  for(const loc of locs.slice(0,2)){
+    const g=await geocode(loc,ctxTown);
+    if(g){
+      const inc=addIncident(entry,loc,g);entry.results.push({...g,label:loc.label,inc});
+      if(inc.inZone&&!entry.zoneAlerted){entry.zoneAlerted=entry.alert=true;const d=dist(me,[g.lat,g.lon]);raiseAlert('POLICE ACTIVITY NEAR YOU',`${loc.label} (${(d/MILE).toFixed(2)} mi away)${kinds.length?' · '+kinds.join(', '):''} — “${text}”`,[g.lat,g.lon])}
+      if(entry.results.length===1&&!me)map.panTo([g.lat,g.lon],{animate:true});
+      break; // one pin per transmission is enough
+    }
+  }
+  entry.pending=false;render();
+}
+$('testBtn').onclick=()=>{const v=$('testInput').value.trim();if(v){handleTranscript(v);$('testInput').value=''}};
+$('testInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('testBtn').click()});
+$('clearBtn').onclick=()=>{lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0};
+$('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
+
+/* ============================================================
+   SPEECH RECOGNITION (Whisper, in a Web Worker, fully in-browser)
+   ============================================================ */
+const WORKER_SRC=`
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+env.allowLocalModels = false;
+let asr = null;
+async function hasWebGPU(){ try{ return !!(navigator.gpu && await navigator.gpu.requestAdapter()); }catch{ return false; } }
+async function load(model, device){
+  const progress_callback = p => postMessage({ type:'progress', p });
+  if (device !== 'wasm' && await hasWebGPU()) {
+    postMessage({ type:'stage', stage:'gpu' });
+    try { asr = await pipeline('automatic-speech-recognition', model, { device:'webgpu', dtype:{ encoder_model:'fp32', decoder_model_merged:'q4' }, progress_callback });
+          postMessage({ type:'ready', device:'GPU' }); return; } catch(e){ console.warn('webgpu failed, using wasm', e); }
+  }
+  asr = await pipeline('automatic-speech-recognition', model, { device:'wasm', dtype:'q8', progress_callback });
+  postMessage({ type:'ready', device:'CPU' });
+}
+onmessage = async ({ data }) => {
+  try {
+    if (data.type === 'load') await load(data.model, data.device);
+    else if (data.type === 'run') {
+      const out = await asr(data.audio, { chunk_length_s: 30 });
+      postMessage({ type:'text', id:data.id, text: out.text, t: data.t });
+    }
+  } catch (e) { postMessage({ type:'error', id:data.id, error: String(e && e.message || e) }); }
+};`;
+let worker=null,modelReady=false,busy=false,queue=[],modelId=store.get('model',IS_PHONE?'onnx-community/whisper-tiny.en':$('model').value);
+$('model').value=modelId;
+const files={};
+function aiStatus(t){$('aiStatus').textContent=t}
+function startWorker(){
+  if(worker)worker.terminate();modelReady=false;busy=false;queue=[];
+  worker=new Worker(URL.createObjectURL(new Blob([WORKER_SRC],{type:'text/javascript'})),{type:'module'});
+  worker.onmessage=({data})=>{
+    if(data.type==='progress'){const p=data.p;if(p.status==='progress'&&p.total){files[p.file]=[p.loaded,p.total];const L=Object.values(files).reduce((s,f)=>s+f[0],0),T=Object.values(files).reduce((s,f)=>s+f[1],0);aiStatus(L>=T?'STARTING MODEL…':`LOADING MODEL ${Math.round(L/T*100)}%`)}}
+    else if(data.type==='stage'){gpuTried=true}
+    else if(data.type==='ready'){clearTimeout(loadTimer);modelReady=true;aiStatus(`AI READY · ${data.device}`);pump()}
+    else if(data.type==='text'){busy=false;const t=cleanText(data.text);if(t)handleTranscript(t,new Date(data.t));pump()}
+    else if(data.type==='error'){busy=false;console.warn(data.error);if(!modelReady){aiStatus('AI FAILED TO LOAD');showErr('The speech model could not start ('+data.error+'). Try the Tiny model in Settings.')}pump()}
+  };
+  worker.onerror=e=>{console.error(e);aiStatus('AI UNAVAILABLE')};
+  aiStatus('LOADING MODEL…');armWatchdog();
+  const device=store.get('forceCPU',false)?'wasm':'auto';
+  worker.postMessage({type:'load',model:modelId,device});
+  // Some phones/browsers report a GPU but never finish starting the model on it. Fall back to CPU.
+  clearTimeout(loadTimer);
+  if(device!=='wasm')loadTimer=setTimeout(()=>{if(!modelReady&&gpuTried){store.set('forceCPU',true);aiStatus('GPU STALLED · USING CPU');startWorker()}},90000);
+}
+let loadTimer,gpuTried=false,watchdog;
+function armWatchdog(){clearTimeout(watchdog);watchdog=setTimeout(()=>{if(!modelReady)showErr('The speech model is taking a long time to start on this device. Live audio still plays. Try the Tiny model in Settings, or use Chrome or Safari on a computer for transcription.')},240000)}
+$('model').onchange=()=>{modelId=$('model').value;store.set('model',modelId);if(worker)startWorker()};
+function pump(){
+  if(!modelReady||busy||!queue.length){if(modelReady&&!busy)aiStatus(aiStatusIdle());return}
+  if(queue.length>6)queue.splice(0,queue.length-6); // fall behind gracefully
+  const seg=queue.shift();busy=true;aiStatus(`TRANSCRIBING${queue.length?` · ${queue.length} QUEUED`:''}`);
+  worker.postMessage({type:'run',audio:seg.audio,t:seg.t,id:seg.t},[seg.audio.buffer]);
+}
+const aiStatusIdle=()=>`AI LISTENING`;
+const HALLUCINATIONS=/^(thank you|thanks for watching|you|bye|okay|uh|um|so|\.+|thank you for watching|please subscribe)[.!?\s]*$/i;
+function cleanText(t){
+  t=(t||'').replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g,' ').replace(/♪/g,'').replace(/\s+/g,' ').trim();
+  if(!t||HALLUCINATIONS.test(t)||/subscribe|thanks for watching/i.test(t))return'';
+  const w=t.toLowerCase().split(' ');if(w.length>6&&new Set(w).size/w.length<.25)return''; // repetition loop
+  return t;
+}
+
+/* ============================================================
+   AUDIO: HLS playback + capture + voice-activity segmentation
+   ============================================================ */
+const audio=new Audio();audio.crossOrigin='anonymous';audio.preload='none';
+let hls,actx,gain,captured=false;
+function getCtx(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();return actx}
+function state(text,live=false){$('status').textContent=text;$('beacon').classList.toggle('live',live)}
+$('volume').oninput=()=>{if(gain)gain.gain.value=parseFloat($('volume').value);store.set('vol',$('volume').value)};
+
+const WORKLET=`class Tap extends AudioWorkletProcessor{constructor(){super();this.buf=new Float32Array(2048);this.n=0}
+process(inputs){const ch=inputs[0];if(ch&&ch[0]){const a=ch[0],b=ch[1];for(let i=0;i<a.length;i++){this.buf[this.n++]=b?(a[i]+b[i])*.5:a[i];if(this.n===this.buf.length){this.port.postMessage(this.buf.slice());this.n=0}}}return true}}
+registerProcessor('tap',Tap);`;
+
+async function setupCapture(){
+  if(captured)return;const c=getCtx();
+  const src=c.createMediaElementSource(audio);
+  gain=c.createGain();gain.gain.value=parseFloat($('volume').value);src.connect(gain).connect(c.destination);
+  await c.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET],{type:'text/javascript'})));
+  const tap=new AudioWorkletNode(c,'tap',{numberOfOutputs:1});
+  const sink=c.createGain();sink.gain.value=0;src.connect(tap).connect(sink).connect(c.destination);
+  tap.port.onmessage=e=>vad(e.data,c.sampleRate);
+  captured=true;
+}
+
+// Energy-based voice activity detection tuned for scanner traffic (bursts separated by silence).
+let floor=0.004,inSpeech=false,segBufs=[],segLen=0,silentFor=0,voicedFor=0,preroll=[];
+function sensFactor(){const s=+$('sens').value;return 4.2-s*0.32} // higher sensitivity -> lower threshold multiple
+$('sens').oninput=()=>{$('sensLbl').textContent=$('sens').value+'/10';store.set('sens',$('sens').value)};
+function vad(chunk,sr){
+  let sum=0;for(let i=0;i<chunk.length;i++)sum+=chunk[i]*chunk[i];const rms=Math.sqrt(sum/chunk.length);
+  const dt=chunk.length/sr;
+  // track noise floor: falls fast, rises slowly
+  floor=rms<floor?floor*0.9+rms*0.1:floor*0.999+rms*0.001;floor=Math.max(floor,1e-4);
+  const loud=rms>Math.max(0.006,floor*sensFactor());
+  if(!inSpeech){
+    preroll.push(chunk);if(preroll.length>Math.ceil(0.35/dt))preroll.shift();
+    if(loud){inSpeech=true;segBufs=[...preroll];segLen=segBufs.reduce((s,b)=>s+b.length,0);preroll=[];silentFor=0;voicedFor=dt}
+    return;
+  }
+  segBufs.push(chunk);segLen+=chunk.length;
+  if(loud){silentFor=0;voicedFor+=dt}else silentFor+=dt;
+  const dur=segLen/sr;
+  if(silentFor>1.0||dur>28){
+    const bufs=segBufs;inSpeech=false;segBufs=[];segLen=0;
+    if(voicedFor>=0.6)enqueue(bufs,sr);
+    voicedFor=0;
+  }
+}
+function enqueue(bufs,sr){
+  const n=bufs.reduce((s,b)=>s+b.length,0),all=new Float32Array(n);let o=0;for(const b of bufs){all.set(b,o);o+=b.length}
+  // resample to 16 kHz (linear) and peak-normalise
+  const ratio=sr/16000,m=Math.floor(n/ratio),out=new Float32Array(m);let peak=0;
+  for(let i=0;i<m;i++){const x=i*ratio,i0=Math.floor(x),f=x-i0;out[i]=all[i0]*(1-f)+(all[i0+1]||0)*f;peak=Math.max(peak,Math.abs(out[i]))}
+  if(peak>0){const g=Math.min(0.9/peak,20);for(let i=0;i<m;i++)out[i]*=g}
+  queue.push({audio:out,t:Date.now()-Math.round(n/sr*1000)});pump();
+}
+
+let listening=false;
+async function play(){
+  const btn=$('start');btn.disabled=true;state('CONNECTING');
+  try{
+    getCtx();const resumed=actx.resume(); // must start inside the tap on iPhone
+    if(hls){hls.destroy();hls=undefined}
+    audio.pause();audio.removeAttribute('src');audio.load();
+    // Prefer hls.js (MSE) so Web Audio capture works everywhere; native HLS only as a fallback.
+    if(window.Hls&&Hls.isSupported()){
+      hls=new Hls({liveSyncDurationCount:3,enableWorker:true});hls.loadSource(STREAM);hls.attachMedia(audio);
+      let tries=0;
+      hls.on(Hls.Events.ERROR,(_e,d)=>{
+        if(!d.fatal)return;
+        if(tries++<4){state('RECONNECTING');
+          if(d.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else setTimeout(()=>hls&&hls.startLoad(),1500);return}
+        if(audio.canPlayType('application/vnd.apple.mpegurl')){hls.destroy();hls=undefined;audio.src=STREAM;audio.play().catch(()=>{});
+          state('LIVE · AUDIO ONLY',true);showErr('This browser could only play the stream in basic mode, so transcription is paused. Reload to try again.');return}
+        state('STREAM ERROR — TRY FALLBACK');btn.textContent='TRY AGAIN';listening=false});
+      hls.on(Hls.Events.FRAG_BUFFERED,()=>{tries=0});
+    }else if(audio.canPlayType('application/vnd.apple.mpegurl'))audio.src=STREAM;
+    else throw new Error('HLS unsupported');
+    const playing=audio.play();
+    await resumed;await setupCapture();await playing;
+    listening=true;state('LIVE',true);btn.textContent='STOP';keepAwake(true);
+    if(!worker)startWorker();
+  }catch(e){console.warn(e);state('USE FALLBACK PLAYER');btn.textContent='TRY AGAIN';listening=false}
+  finally{btn.disabled=false}
+}
+// Keep the screen on while listening: a locked iPhone pauses audio and transcription.
+let wakeLock=null;
+async function keepAwake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&listening)keepAwake(true)});
+function stop(){keepAwake(false);listening=false;audio.pause();if(hls){hls.destroy();hls=undefined}state('STOPPED');$('start').textContent='START LISTENING'}
+$('start').onclick=()=>listening?stop():play();
+audio.addEventListener('playing',()=>state('LIVE',true));
+audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
+$('fallback').onclick=()=>$('fallbackDialog').showModal();
+$('closeDialog').onclick=()=>$('fallbackDialog').close();
+
+/* ============================================================
+   INIT
+   ============================================================ */
+paintAlertsBtn();
+$('volume').value=store.get('vol',0.8);
+$('sens').value=store.get('sens',6);$('sensLbl').textContent=$('sens').value+'/10';
+$('radius').value=store.get('radius',0.5);$('radiusLbl').textContent=$('radius').value+' mi';
+store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
+loadStreets();
+const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved');
+</script>
+</body>
+</html>
