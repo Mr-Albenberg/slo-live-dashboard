@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <title>SLO // Dispatch Watch</title>
   <meta name="theme-color" content="#03080d">
@@ -12,121 +12,168 @@
   <meta name="apple-mobile-web-app-title" content="Dispatch Watch">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://server.arcgisonline.com">
+  <link rel="preconnect" href="https://hls-o2.broadcastify.com">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.20/hls.min.js"></script>
   <style>
-    :root{--ink:#03080d;--panel:#071321eb;--line:#26526a;--text:#eaf6fb;--muted:#9db8c7;--cyan:#61dcff;--orange:#ff864e;--green:#53ebb0;--red:#ff4e5e}
+    :root{--ink:#03080d;--panel:#071321eb;--panel2:#0a1824;--line:#26526a;--line2:#1f465b;--text:#eaf6fb;--muted:#9db8c7;--dim:#7d9cad;--cyan:#61dcff;--orange:#ff864e;--green:#53ebb0;--red:#ff4e5e;--amber:#e3b34f}
     *{box-sizing:border-box}
-    html,body{margin:0;background:var(--ink);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
-    body{padding:14px;padding-top:max(14px,env(safe-area-inset-top));min-height:100vh}
-    header{position:sticky;z-index:1000;top:14px;display:grid;grid-template-columns:minmax(255px,1fr) minmax(480px,720px);align-items:center;gap:18px;padding:9px 14px 9px 17px;background:#071522ed;border:1px solid #255069;border-radius:12px;box-shadow:0 14px 36px #0009;backdrop-filter:blur(11px)}
-    .topline{display:flex;align-items:center;gap:11px}
+    html,body{margin:0;background:var(--ink);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-text-size-adjust:100%}
+    body{padding:14px;padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(14px,env(safe-area-inset-bottom));min-height:100vh}
+    button{min-height:40px;padding:0 14px;border:0;border-radius:7px;background:#ff8050;color:#fff;font:850 11px Inter,system-ui,sans-serif;letter-spacing:.06em;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+    button:hover{filter:brightness(1.1)}button:disabled{opacity:.55;cursor:wait}
+    button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+    .secondary{background:#102c3e;border:1px solid #35647c;color:#dff5fc}
+    .secondary.on{background:#0f3b33;border-color:var(--green);color:var(--green)}
+    select,input[type=text],input[type=password],input[type=search]{min-height:40px;width:100%;background:var(--panel2);border:1px solid #2a5068;border-radius:7px;color:var(--text);font:600 14px Inter,system-ui,sans-serif;padding:0 11px;min-width:0}
+
+    header{position:sticky;z-index:1000;top:max(14px,env(safe-area-inset-top));display:grid;grid-template-columns:minmax(250px,1fr) auto;align-items:center;gap:16px;padding:10px 14px 10px 17px;background:#071522ed;border:1px solid #255069;border-radius:12px;box-shadow:0 14px 36px #0009;backdrop-filter:blur(11px);-webkit-backdrop-filter:blur(11px)}
+    .topline{display:flex;align-items:center;gap:11px;min-width:0}
     .beacon{width:11px;height:11px;flex:0 0 auto;border-radius:50%;background:#6d8290}
     .beacon.live{background:var(--green);box-shadow:0 0 16px #53ebb0cc}
     .eyebrow{color:var(--cyan);font-size:10px;font-weight:850;letter-spacing:.18em}
     .topline h1{margin:2px 0 0;font-size:18px;letter-spacing:.025em;line-height:1.05}
-    .status{margin-left:auto;padding-left:14px;border-left:1px solid #284e63;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em;text-align:right;line-height:1.5}
-    .status b{color:var(--text)}
-    .controls{display:grid;grid-template-columns:auto auto minmax(110px,1fr) auto;align-items:center;gap:9px;padding:5px;border-radius:9px;background:#0d1c29;border:1px solid #213f51}
-    button{height:38px;padding:0 14px;border:0;border-radius:6px;background:#ff8050;color:#fff;font:850 10px Inter,system-ui,sans-serif;letter-spacing:.06em;cursor:pointer;white-space:nowrap}
-    button:hover{filter:brightness(1.1)}button:disabled{opacity:.55;cursor:wait}
-    .secondary{background:#102c3e;border:1px solid #35647c;color:#dff5fc}
-    .secondary.on{background:#0f3b33;border-color:var(--green);color:var(--green)}
-    .vol{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.1em;padding:0 4px}
-    input[type=range]{accent-color:var(--cyan);width:100%}
-    select,input[type=text]{height:34px;background:#0a1824;border:1px solid #2a5068;border-radius:6px;color:var(--text);font:600 12px Inter,system-ui,sans-serif;padding:0 9px;min-width:0}
-    .grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:14px;margin-top:28px}
-    .panel{background:var(--panel);border:1px solid #1f465b;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-    .phead{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #1f465b;color:var(--cyan);font-size:10px;font-weight:850;letter-spacing:.15em}
-    .phead .spacer{flex:1}
-    .phead button{height:26px;padding:0 9px;font-size:9px}
+    .stat{margin-left:auto;display:grid;grid-template-columns:auto auto;gap:2px 10px;padding-left:14px;border-left:1px solid #284e63;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+    .stat b{color:var(--text);font-weight:800;text-align:left}
+    .lvl{grid-column:1/-1;height:3px;background:#12293a;border-radius:2px;overflow:hidden}.lvl i{display:block;height:100%;width:0;background:var(--green);transition:width .25s}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    #start{min-width:150px}
+
+    #errbar{display:none;margin-top:12px;padding:10px 12px;border:1px solid var(--red);border-radius:8px;background:#3a0c14;color:#ffc2c8;font-size:13px;line-height:1.45}
+    #errbar button{margin-left:8px;min-height:28px;padding:0 9px;font-size:10px}
+
+    .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,1fr);gap:14px;margin-top:22px}
+    .panel{background:var(--panel);border:1px solid var(--line2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+    .phead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line2);color:var(--cyan);font-size:10px;font-weight:850;letter-spacing:.15em;min-height:48px}
+    .phead .spacer{flex:1}.phead button{min-height:30px;padding:0 10px;font-size:10px}
     .chip-n{color:var(--muted);font-weight:700;letter-spacing:.08em}
-    #transcript{height:400px;overflow-y:auto;padding:4px 0}
-    .empty{padding:28px 18px;color:var(--muted);font-size:12px;line-height:1.55}
-    .empty b{color:var(--text)}
-    .line{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:9px 14px;border-bottom:1px solid #12293a;font-size:13px;line-height:1.45;animation:fade .4s}
+    #transcript{height:430px;overflow-y:auto;padding:2px 0;overscroll-behavior:contain}
+    .empty{padding:24px 18px;color:var(--muted);font-size:13px;line-height:1.6}.empty b{color:var(--text)}
+    .line{display:grid;grid-template-columns:62px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid #12293a;font-size:14px;line-height:1.5;animation:fade .35s}
+    .line.pending .x{color:#9fb6c2;font-style:italic}
     .line.alert{background:#3a0f17aa;border-left:3px solid var(--red)}
     .line.located{border-left:3px solid var(--orange)}
-    .line .t{color:#7d9cad;font:700 11px ui-monospace,Menlo,monospace;padding-top:2px}
-    .line .x{color:#d9ebf2;word-wrap:break-word}
+    .line .t{color:var(--dim);font:700 11px ui-monospace,Menlo,monospace;padding-top:3px}
+    .line .x{color:#d9ebf2;overflow-wrap:anywhere}
     .line mark{background:#ff864e33;color:#ffb48f;border-radius:3px;padding:0 2px}
     .line mark.w{background:#ff4e5e40;color:#ff9aa4}
-    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-    .tag{font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 7px;border-radius:4px;background:#102c3e;border:1px solid #2c5a72;color:#cfeaf5;cursor:default}
-    .tag.loc{cursor:pointer;border-color:#8a4a2c;background:#2e170c;color:#ffb48f}
-    .tag.loc:hover{filter:brightness(1.25)}
-    .tag.kind{border-color:#2c5a72}
+    .fix{border-bottom:1px solid #61dcff99;cursor:help}
+    .unc{text-decoration:underline dotted #e3b34f;text-underline-offset:3px;cursor:help}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+    .tag{font-size:10px;font-weight:800;letter-spacing:.05em;padding:4px 8px;border-radius:5px;background:#102c3e;border:1px solid #2c5a72;color:#cfeaf5;line-height:1.3}
+    .tag.loc{cursor:pointer;border-color:#8a4a2c;background:#2e170c;color:#ffb48f}.tag.loc:hover{filter:brightness(1.25)}
     .tag.al{background:#4a1018;border-color:var(--red);color:#ffc2c8}
+    .tag.ok{background:#0f2f28;border-color:#2f7f62;color:#9ff0cf}
     .tag.pend{color:var(--muted)}
     @keyframes fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1}}
-    .watch{padding:12px 14px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;max-height:400px}
-    .lbl{color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.14em;margin-bottom:6px;display:flex;justify-content:space-between}
-    .lbl span{color:var(--text)}
-    .row{display:flex;gap:7px;flex-wrap:wrap}
-    .row>*{flex:1}
-    .row button{height:34px;padding:0 10px}
-    .where{font-size:12px;color:#cfe3ec;line-height:1.4;min-height:17px}
-    .chips{display:flex;flex-wrap:wrap;gap:5px}
-    .chips .tag{display:inline-flex;gap:6px;align-items:center}
-    .chips .tag i{font-style:normal;cursor:pointer;color:var(--muted)}
-    .chips .tag i:hover{color:var(--red)}
-    .note{color:#7d9cad;font-size:11px;line-height:1.45}
-    details summary{cursor:pointer;color:var(--muted);font-size:9px;font-weight:850;letter-spacing:.14em;list-style:none}
-    details summary::before{content:'▸ '}details[open] summary::before{content:'▾ '}
-    details>div{margin-top:9px;display:flex;flex-direction:column;gap:9px}
-    .mapwrap{position:relative;margin-top:14px;border:1px solid #1f465b;border-radius:12px;overflow:hidden;height:max(460px,calc(100vh - 140px))}
-    #map{position:absolute;inset:0;background:#06111c}
-    #map.picking{cursor:crosshair}
-    .hud{position:absolute;z-index:500;pointer-events:none}
-    .badge{top:12px;left:56px;max-width:300px;padding:10px 12px;border-left:2px solid var(--cyan);border-radius:2px;background:#071522e8;box-shadow:0 8px 22px #0008;backdrop-filter:blur(8px)}
+
+    .watch{padding:13px 14px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;max-height:430px}
+    .lbl{color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.14em;margin-bottom:7px;display:flex;justify-content:space-between;gap:8px}
+    .lbl span{color:var(--text);letter-spacing:.04em}
+    .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+    .row .fit{flex:0 0 auto}
+    .where{font-size:13px;color:#cfe3ec;line-height:1.45;margin-top:9px;min-height:19px}
+    .where.warn{color:#ffd28a}
+    .results{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .results button{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.3;padding:8px 11px;font:600 13px Inter,system-ui,sans-serif;letter-spacing:0;background:#0d2232;border:1px solid #2a5068}
+    .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+    .seg button{min-height:44px;padding:0;background:#0d2232;border:1px solid #2a5068;color:#dff5fc;font-size:13px;letter-spacing:.02em}
+    .seg button.on{background:#0e3a4a;border-color:var(--cyan);color:var(--cyan)}
+    input[type=range]{width:100%;accent-color:var(--cyan);height:32px;margin:6px 0 0;background:transparent;-webkit-appearance:none;appearance:none}
+    input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#1a3a4d}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-10px;border-radius:50%;background:var(--cyan);border:3px solid #031018;box-shadow:0 0 0 1px var(--cyan)}
+    input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#1a3a4d}
+    input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--cyan);border:3px solid #031018}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chips .tag{display:inline-flex;gap:7px;align-items:center}
+    .chips .tag button{min-height:0;padding:0 2px;background:none;color:var(--muted);font-size:14px;line-height:1}
+    .chips .tag button:hover{color:var(--red)}
+    .note{color:var(--dim);font-size:12px;line-height:1.5}
+    details summary{cursor:pointer;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.14em;list-style:none;min-height:30px;display:flex;align-items:center}
+    details summary::-webkit-details-marker{display:none}
+    details summary::before{content:'▸ ';margin-right:4px}details[open] summary::before{content:'▾ '}
+    details>div{margin-top:8px;display:flex;flex-direction:column;gap:14px}
+    .switch{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.4;color:#cfe3ec;cursor:pointer}
+    .switch input{width:20px;height:20px;accent-color:var(--cyan);flex:0 0 auto;margin:0}
+    .switch small{display:block;color:var(--dim);font-size:11.5px}
+
+    .mapwrap{position:relative;margin-top:14px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;height:max(480px,calc(100vh - 150px));background:#06111c}
+    .mapwrap.full{position:fixed;inset:0;z-index:2500;margin:0;border-radius:0;border:0;height:auto}
+    #map{position:absolute;inset:0;background:#0c1418}
+    .hud{position:absolute;z-index:500}
+    .badge{top:12px;left:12px;max-width:min(320px,calc(100% - 190px));padding:9px 12px;border-left:2px solid var(--cyan);border-radius:2px;background:#071522e8;box-shadow:0 8px 22px #0008;pointer-events:none}
     .badge b{display:block;color:var(--cyan);font-size:10px;letter-spacing:.13em}
-    .badge span{display:block;margin-top:4px;color:#bed0da;font-size:11px;line-height:1.35}
-    .legend{bottom:22px;left:12px;padding:7px 9px;background:#06131ad9;border-left:2px solid var(--cyan);font-size:9px;font-weight:750;letter-spacing:.06em;color:#bdd4df;display:flex;gap:12px}
+    .badge span{display:block;margin-top:4px;color:#bed0da;font-size:12px;line-height:1.35}
+    .mapbar{top:12px;right:12px;display:flex;flex-direction:column;gap:7px}
+    .mapbar button{min-height:42px;min-width:42px;padding:0 12px;background:#071522f0;border:1px solid #2f6580;color:#dff5fc;box-shadow:0 6px 16px #0007;font-size:11px}
+    .mapbar button.on{border-color:var(--cyan);color:var(--cyan)}
+    .legend{bottom:22px;left:12px;padding:7px 9px;background:#06131ad9;border-left:2px solid var(--cyan);font-size:10px;font-weight:750;letter-spacing:.05em;color:#bdd4df;display:flex;gap:12px;pointer-events:none}
     .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-    .leaflet-container{font-family:Inter,system-ui,sans-serif}
-    .dark-tiles{filter:invert(1) hue-rotate(185deg) brightness(.82) contrast(.9) saturate(.55)}
+    .pick{display:none;inset:0;pointer-events:none}
+    .picking .pick{display:block}
+    .cross{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid var(--cyan);border-radius:50%;box-shadow:0 0 0 2000px #00000022}
+    .cross::before,.cross::after{content:'';position:absolute;background:var(--cyan)}
+    .cross::before{left:50%;top:-14px;bottom:-14px;width:2px;margin-left:-1px}.cross::after{top:50%;left:-14px;right:-14px;height:2px;margin-top:-1px}
+    .pickbar{position:absolute;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;width:min(420px,calc(100% - 24px))}
+    .pickbar button{flex:1;min-height:50px;font-size:13px}
+    .pickhint{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:#071522f0;border:1px solid #2f6580;border-radius:8px;padding:8px 12px;font-size:13px;color:#dff5fc;white-space:nowrap;pointer-events:none}
+    .leaflet-container{font-family:Inter,system-ui,sans-serif;background:#0c1418}
     .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#091522;color:var(--text);border:1px solid var(--line)}
-    .leaflet-popup-content{font-size:12px;line-height:1.45;margin:11px 13px}
-    .leaflet-popup-content b{color:var(--orange)}
-    .leaflet-popup-content small{color:var(--muted)}
-    .leaflet-control-attribution{background:#071522cc!important;color:#7d9cad!important}.leaflet-control-attribution a{color:#9fd3e6!important}
-    .leaflet-bar a{background:#0d1c29;color:var(--text);border-color:#213f51}
-    .pulse{width:16px;height:16px;border-radius:50%;background:var(--cyan);border:3px solid #031018;box-shadow:0 0 0 0 #61dcffaa;animation:pulse 2s infinite}
+    .leaflet-popup-content{font-size:13px;line-height:1.5;margin:12px 14px}
+    .leaflet-popup-content b{color:var(--orange)}.leaflet-popup-content small{color:var(--muted)}
+    .leaflet-control-attribution{background:#071522cc!important;color:#7d9cad!important;font-size:10px}.leaflet-control-attribution a{color:#9fd3e6!important}
+    .leaflet-bar a{background:#0d1c29;color:var(--text);border-color:#213f51;width:40px!important;height:40px!important;line-height:40px!important;font-size:20px!important}
+    .pulse{width:18px;height:18px;border-radius:50%;background:var(--cyan);border:3px solid #031018;box-shadow:0 0 0 0 #61dcffaa;animation:pulse 2s infinite}
     @keyframes pulse{70%{box-shadow:0 0 0 14px #61dcff00}100%{box-shadow:0 0 0 0 #61dcff00}}
-    #toast{position:fixed;z-index:3000;top:16px;left:50%;transform:translate(-50%,-140%);transition:transform .35s;width:min(560px,calc(100% - 24px));padding:13px 16px;background:#3a0c14f2;border:1px solid var(--red);border-radius:10px;box-shadow:0 16px 50px #000c;cursor:pointer}
+    .maperr{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+
+    #toast{position:fixed;z-index:3000;top:max(16px,env(safe-area-inset-top));left:50%;transform:translate(-50%,-160%);transition:transform .35s;width:min(560px,calc(100% - 24px));padding:13px 16px;background:#3a0c14f2;border:1px solid var(--red);border-radius:10px;box-shadow:0 16px 50px #000c;cursor:pointer}
     #toast.show{transform:translate(-50%,0)}
     #toast b{display:block;color:#ff9aa4;font-size:10px;letter-spacing:.16em;margin-bottom:5px}
-    #toast span{font-size:13px;line-height:1.45}
+    #toast span{font-size:14px;line-height:1.45}
     dialog{width:min(720px,calc(100% - 28px));border:1px solid var(--line);border-radius:14px;padding:0;background:#091522;color:var(--text);box-shadow:0 24px 100px #000}
     dialog::backdrop{background:#000b}
     .modal-head{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);color:var(--cyan);font-size:11px;font-weight:850;letter-spacing:.13em}
-    .modal-head button{height:auto;padding:0;background:none;color:var(--text);font-size:22px}
+    .modal-head button{min-height:0;padding:0;background:none;color:var(--text);font-size:24px}
     .modal-body{padding:15px}.modal-body p{margin:0 0 12px;color:var(--muted);font-size:12px}
     .modal-body iframe{width:100%;height:290px;border:0;background:#06111c}
-    .maperr{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5;z-index:400}
-    #errbar{display:none;margin-top:10px;padding:9px 12px;border:1px solid var(--red);border-radius:8px;background:#3a0c14;color:#ffc2c8;font-size:12px;line-height:1.4}
-    .bar{height:4px;background:#12293a;border-radius:2px;overflow:hidden;margin-top:6px}.bar div{height:100%;width:0;background:var(--cyan);transition:width .3s}
-    @media(max-width:980px){.grid{grid-template-columns:1fr}.watch{max-height:none}}
-    @media(max-width:840px){body{padding:8px}header{position:relative;top:0;grid-template-columns:1fr;gap:7px;padding:10px 11px}.topline h1{font-size:16px}.controls{grid-template-columns:auto auto 1fr;gap:6px;padding:4px}.controls .vol{grid-column:1/-1;order:5}.status{font-size:9px}button{height:36px;padding:0 9px;font-size:9px}.grid{margin-top:18px}#transcript{height:340px}.badge{left:50px;max-width:220px}.legend{display:none}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+    @media(max-width:1000px){.grid{grid-template-columns:1fr}.watch{max-height:none}}
+    @media(max-width:760px){
+      body{padding:10px;padding-top:max(10px,env(safe-area-inset-top))}
+      header{position:relative;top:0;grid-template-columns:1fr;gap:10px;padding:11px 12px}
+      .topline h1{font-size:16px}.stat{font-size:9px}
+      .controls{justify-content:stretch}.controls button{flex:1}#start{flex-basis:100%}
+      .grid{margin-top:14px}#transcript{height:360px}
+      .mapwrap{height:72vh;min-height:420px}.legend{display:none}.badge{max-width:calc(100% - 80px)}
+      .mapbar button span{display:none}
+    }
   </style>
 </head>
 <body>
   <header>
-    <div class="topline"><span id="beacon" class="beacon"></span><div><div class="eyebrow">SLO // LIVE OPERATIONS</div><h1>DISPATCH WATCH</h1></div><span class="status"><span id="status">READY</span><br><span id="aiStatus">AI IDLE</span></span></div>
+    <div class="topline">
+      <span id="beacon" class="beacon"></span>
+      <div><div class="eyebrow">SLO // LIVE OPERATIONS</div><h1>DISPATCH WATCH</h1></div>
+      <div class="stat">
+        <span>RADIO</span><b id="status">READY</b>
+        <span>SPEECH</span><b id="aiStatus">IDLE</b>
+        <div class="lvl" title="Incoming radio level"><i id="lvl"></i></div>
+      </div>
+    </div>
     <div class="controls">
       <button id="start" type="button">START LISTENING</button>
       <button id="alertsBtn" class="secondary" type="button">ENABLE ALERTS</button>
-      <label class="vol">VOL<input id="volume" type="range" min="0" max="1" step="0.05" value="0.8"></label>
       <button id="fallback" class="secondary" type="button">FALLBACK PLAYER</button>
     </div>
   </header>
+  <div id="errbar" role="alert"></div>
 
-  <div id="errbar"></div>
   <section class="grid">
     <div class="panel">
       <div class="phead">LIVE TRANSCRIPT <span class="chip-n" id="tCount"></span><span class="spacer"></span><button class="secondary" id="exportBtn" type="button">EXPORT</button><button class="secondary" id="clearBtn" type="button">CLEAR</button></div>
-      <div id="transcript"><div class="empty" id="emptyMsg"><b>Press START LISTENING.</b> The scanner audio is transcribed right here in your browser by a speech-recognition model (downloaded once, then cached). Radio audio is rough, so expect some misheard words — addresses and cross-streets that are recognized get pinned on the map below.</div></div>
+      <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Each radio call is transcribed on your device and double-checked: it's heard twice, compared, and street and town names are matched against the county street list. <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear. Addresses and cross-streets get pinned on the map.</div></div>
     </div>
 
     <div class="panel">
@@ -134,173 +181,240 @@
       <div class="watch">
         <div>
           <div class="lbl">LOCATION</div>
-          <div class="row"><button id="geoBtn" type="button">USE MY LOCATION</button><button id="pickBtn" class="secondary" type="button">SELECT ON MAP</button></div>
-          <div class="where" id="where" style="margin-top:8px">No location set.</div>
+          <div class="row"><button id="geoBtn" type="button">USE MY LOCATION</button><button id="pickBtn" class="secondary" type="button">PICK ON MAP</button></div>
+          <form id="searchForm" class="row" style="margin-top:8px"><input id="searchInput" type="search" placeholder="Or type an address or place" autocomplete="street-address" enterkeyhint="search"><button class="secondary fit" type="submit">FIND</button></form>
+          <div class="results" id="results"></div>
+          <div class="where" id="where">No location set.</div>
+          <label class="switch" style="margin-top:9px"><input type="checkbox" id="follow"><span>Follow me as I move<small>Keeps your zone centered on you while this page is open.</small></span></label>
         </div>
         <div>
-          <div class="lbl">ALERT RADIUS <span id="radiusLbl">0.5 mi</span></div>
-          <input id="radius" type="range" min="0.1" max="3" step="0.1" value="0.5">
+          <div class="lbl">ALERT RADIUS <span id="radiusLbl">½ mi</span></div>
+          <div class="seg" id="radiusSeg">
+            <button type="button" data-r="0.25">¼ mi</button><button type="button" data-r="0.5">½ mi</button><button type="button" data-r="1">1 mi</button><button type="button" data-r="2">2 mi</button><button type="button" data-r="5">5 mi</button>
+          </div>
+          <input id="radius" type="range" min="0.1" max="5" step="0.05" value="0.5" aria-label="Alert radius in miles">
         </div>
         <div>
-          <div class="lbl">WATCHED STREETS & KEYWORDS <span id="watchN"></span></div>
-          <div class="chips" id="chips"><span class="note">Set a location to watch nearby streets. Mentions of these trigger an alert even if the exact spot can't be mapped.</span></div>
-          <div class="row" style="margin-top:8px"><input id="kwInput" type="text" placeholder="Add a street or keyword…"><button id="kwAdd" class="secondary" type="button" style="flex:0 0 auto">ADD</button></div>
+          <div class="lbl">WATCHED STREETS <span id="watchN"></span></div>
+          <div class="chips" id="chips"></div>
+          <form id="kwForm" class="row" style="margin-top:8px"><input id="kwInput" type="text" placeholder="Add a street or keyword"><button class="secondary fit" type="submit">ADD</button></form>
         </div>
-        <details>
+        <details id="settings">
           <summary>SETTINGS</summary>
           <div>
+            <label class="switch"><input type="checkbox" id="optSound" checked><span>Play radio sound<small>Turn off to transcribe silently.</small></span></label>
+            <label class="switch"><input type="checkbox" id="optDouble" checked><span>Double-check each call<small>Hears every call twice and compares. More accurate, about twice the work. Skipped automatically if calls pile up.</small></span></label>
             <div><div class="lbl">SPEECH MODEL</div>
               <select id="model">
-                <option value="onnx-community/whisper-tiny.en">Tiny — fastest, least accurate (~40 MB)</option>
-                <option value="onnx-community/whisper-base.en" selected>Base — balanced (~80 MB)</option>
-                <option value="onnx-community/whisper-small.en">Small — best, needs a fast GPU (~250 MB)</option>
+                <option value="onnx-community/whisper-tiny.en">Tiny: fastest, for phones (~40 MB)</option>
+                <option value="onnx-community/whisper-base.en">Base: more accurate (~80 MB)</option>
+                <option value="onnx-community/whisper-small.en">Small: most accurate, fast computers only (~250 MB)</option>
               </select></div>
-            <div><div class="lbl">VOICE DETECTION SENSITIVITY <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6"></div>
-            <div><div class="lbl">TEST A PHRASE</div><div class="row"><input id="testInput" type="text" placeholder="e.g. 415 at 1200 Higuera"><button id="testBtn" class="secondary" type="button" style="flex:0 0 auto">RUN</button></div></div>
-            <div class="note" id="streetNote">Loading county street names…</div>
+            <div><div class="lbl">VOICE DETECTION <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6" aria-label="Voice detection sensitivity"></div>
+            <div>
+              <div class="lbl">CLAUDE CHECK (OPTIONAL)</div>
+              <label class="switch"><input type="checkbox" id="optClaude"><span>Have Claude review each call<small>Fixes remaining mishearings using both hearings. Needs your own Anthropic API key, saved only in this browser and sent only to Anthropic. Costs a fraction of a cent per call.</small></span></label>
+              <div class="row" style="margin-top:8px"><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"><button class="secondary fit" id="keySave" type="button">SAVE</button></div>
+              <div class="note" id="keyNote"></div>
+            </div>
+            <div><div class="lbl">TEST A PHRASE</div><form id="testForm" class="row"><input id="testInput" type="text" placeholder="e.g. 415 at 900 block of Ramona, Grover"><button class="secondary fit" type="submit">RUN</button></form></div>
+            <div class="note" id="streetNote">Loading county streets…</div>
           </div>
         </details>
       </div>
     </div>
   </section>
 
-  <section class="mapwrap">
+  <section class="mapwrap" id="mapwrap">
     <div id="map"></div>
-    <div class="hud badge"><b>DISPATCH MAP // SLO COUNTY</b><span id="mapHint">Pinned locations heard on the scanner. Click a pin for the transcript.</span></div>
-    <div class="hud legend"><span><i style="background:var(--orange)"></i>ADDRESS / CROSS-STREET</span><span><i style="background:#c9a24a"></i>STREET ONLY</span><span><i style="background:var(--red)"></i>IN YOUR ZONE</span></div>
+    <div class="hud badge"><b>DISPATCH MAP // SLO COUNTY</b><span id="mapHint">Calls heard on the scanner. Tap a pin for the transcript.</span></div>
+    <div class="hud mapbar">
+      <button type="button" id="mbMe" title="Center on my zone">◎ <span>MY ZONE</span></button>
+      <button type="button" id="mbAll" title="Show all calls">▣ <span>ALL CALLS</span></button>
+      <button type="button" id="mbFull" title="Full screen map">⛶ <span>FULL SCREEN</span></button>
+    </div>
+    <div class="hud pick"><div class="cross"></div><div class="pickhint">Move the map so the circle is on your spot</div>
+      <div class="pickbar"><button type="button" id="pickCancel" class="secondary">CANCEL</button><button type="button" id="pickSet">SET LOCATION HERE</button></div></div>
+    <div class="hud legend"><span><i style="background:var(--orange)"></i>ADDRESS / CROSS-STREET</span><span><i style="background:var(--amber)"></i>STREET ONLY</span><span><i style="background:var(--red)"></i>IN YOUR ZONE</span></div>
   </section>
 
-  <div id="toast"><b>⚠ POLICE ACTIVITY NEAR YOU</b><span id="toastText"></span></div>
+  <div id="toast" role="status"><b>⚠ POLICE ACTIVITY NEAR YOU</b><span id="toastText"></span></div>
 
-  <dialog id="fallbackDialog"><div class="modal-head">BROADCASTIFY FALLBACK PLAYER<button id="closeDialog" type="button" aria-label="Close">×</button></div><div class="modal-body"><p>Use this player when the direct stream is blocked by the browser. (Transcription only works with the main player.)</p><iframe title="SLO County Public Safety audio player" src="https://www.broadcastify.com/listen/feed/popout.php?feedId=44069" allow="autoplay"></iframe></div></dialog>
+  <dialog id="fallbackDialog"><div class="modal-head">BROADCASTIFY FALLBACK PLAYER<button id="closeDialog" type="button" aria-label="Close">×</button></div><div class="modal-body"><p>Use this player if the main audio is blocked. Transcription keeps working in the background either way.</p><iframe title="SLO County Public Safety audio player" data-src="https://www.broadcastify.com/listen/feed/popout.php?feedId=44069" allow="autoplay"></iframe></div></dialog>
 
 <script>
-/* ============================================================
+/* ================================================================
    CONFIG
-   ============================================================ */
-const STREAM='https://hls-o2.broadcastify.com/t/v1./feed/44069/playlist.m3u8';
-const BBOX={s:34.89,w:-121.35,n:35.80,e:-119.47};           // San Luis Obispo County
-const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+   ================================================================ */
+const QS=new URLSearchParams(location.search);
+const STREAM=QS.get('stream')||'https://hls-o2.broadcastify.com/t/v1./feed/44069/playlist.m3u8';
+const HLS_SRC='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.20/hls.min.js';
+const TRANSFORMERS='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+const CLAUDE_MODEL='claude-haiku-4-5-20251001';
+const BBOX={s:34.89,w:-121.35,n:35.80,e:-119.47};
 const MILE=1609.34;
-
-const TOWNS={ // approximate town centres, used to bias geocoding
- 'san luis obispo':[35.2828,-120.6596],'slo':[35.2828,-120.6596],'cal poly':[35.3050,-120.6625],
+const TOWNS={
+ 'san luis obispo':[35.2828,-120.6596],'slo':[35.2828,-120.6596],'san luis':[35.2828,-120.6596],'cal poly':[35.3050,-120.6625],
  'paso robles':[35.6266,-120.6910],'paso':[35.6266,-120.6910],'atascadero':[35.4894,-120.6707],'templeton':[35.5497,-120.7060],
  'morro bay':[35.3658,-120.8499],'los osos':[35.3111,-120.8324],'baywood':[35.3240,-120.8340],'cambria':[35.5641,-121.0807],'cayucos':[35.4428,-120.8921],
  'pismo beach':[35.1428,-120.6413],'pismo':[35.1428,-120.6413],'shell beach':[35.1555,-120.6713],'grover beach':[35.1216,-120.6210],'grover':[35.1216,-120.6210],
  'arroyo grande':[35.1186,-120.5907],'oceano':[35.0989,-120.6124],'nipomo':[35.0428,-120.4760],'avila beach':[35.1797,-120.7317],'avila':[35.1797,-120.7317],
  'santa margarita':[35.3900,-120.6085],'san miguel':[35.7525,-120.6963],'creston':[35.5190,-120.5240],'shandon':[35.6550,-120.3750],'san simeon':[35.6436,-121.1900],
- 'edna':[35.2000,-120.6100],'cuesta':[35.3290,-120.6740],'los ranchos':[35.2420,-120.6250]
+ 'edna':[35.2000,-120.6100],'los ranchos':[35.2420,-120.6250]
 };
-const TOWN_FULL={'slo':'San Luis Obispo','cal poly':'San Luis Obispo','paso':'Paso Robles','pismo':'Pismo Beach','grover':'Grover Beach','avila':'Avila Beach','baywood':'Los Osos','cuesta':'San Luis Obispo','los ranchos':'San Luis Obispo','edna':'San Luis Obispo'};
-const townName=t=>TOWN_FULL[t]||t.replace(/\b\w/g,c=>c.toUpperCase());
+const TOWN_FULL={'slo':'San Luis Obispo','san luis':'San Luis Obispo','cal poly':'San Luis Obispo','paso':'Paso Robles','pismo':'Pismo Beach','grover':'Grover Beach','avila':'Avila Beach','baywood':'Los Osos','los ranchos':'San Luis Obispo','edna':'San Luis Obispo'};
+const titleCase=s=>s.replace(/\b\w/g,c=>c.toUpperCase());
+const townName=t=>TOWN_FULL[t]||titleCase(t);
 const HIGHWAYS={'101':'US 101','1':'CA 1','46':'CA 46','41':'CA 41','58':'CA 58','227':'CA 227','166':'CA 166','135':'CA 135'};
-
-// Built-in fallback street list; the full county list is loaded from OpenStreetMap at runtime.
-const BUILTIN_STREETS=`Higuera Street|Marsh Street|Monterey Street|Santa Rosa Street|Foothill Boulevard|Broad Street|Johnson Avenue|Osos Street|Chorro Street|Morro Street|Garden Street|Nipomo Street|Palm Street|Mill Street|Pacific Street|Pismo Street|Buchon Street|Islay Street|Madonna Road|Los Osos Valley Road|Tank Farm Road|Orcutt Road|Laurel Lane|Grand Avenue|California Boulevard|Santa Barbara Avenue|South Street|King Street|Prado Road|Bishop Street|Augusta Street|Sierra Way|Ella Street|Ramona Drive|Casa Street|Murray Avenue|Highland Drive|Patricia Drive|Mustang Drive|Slack Street|Hathway Avenue|Stenner Street|Ferrini Road|Spring Street|Niblick Road|Creston Road|Vine Street|Riverside Avenue|Park Street|Pine Street|El Camino Real|Morro Road|Traffic Way|Las Tablas Road|Vineyard Drive|Main Street|Bennett Way|Quintana Road|Harbor Street|Embarcadero|Atascadero Avenue|Shell Beach Road|Price Street|Dolliver Street|Oak Park Boulevard|Halcyon Road|Brisco Road|Fair Oaks Avenue|Branch Street|Tefft Street|Thompson Avenue|Frontage Road|Mesa Road|Willow Road|Pomeroy Road|South Bay Boulevard|Ravenna Avenue|Santa Ysabel Avenue|Pecho Valley Road|Bay Boulevard|Burton Drive|Ardath Drive|Moonstone Beach Drive|Ocean Avenue|Avila Beach Drive|San Luis Bay Drive|Ontario Road|Grand Avenue|Pier Avenue|Front Street|Hinds Avenue|Cypress Street|West Branch Street|Traffic Way|Ramada Drive|Rossi Road|Buckley Road|Edna Road|Higuera Street|Bello Street|Sunset Drive|Theatre Drive|Golden Hill Road|Union Road|Airport Road|Sherwood Road|Black Oak Drive|Santa Fe Road|Prefumo Canyon Road|Descanso Street|Calle Joaquin|Elks Lane|Industrial Way|Suburban Road|Poinsettia Street|Oceanaire Drive|Royal Way|Perfumo Canyon Road|Grand Avenue|Mattie Road|Cienaga Street|Strother Road|Willow Road|Tefft Street|Thompson Road|Division Street|Camino Caballo|Sandydale Drive|Pacific Boulevard|Highway 1|Halcyon Road|Atascadero Road|Kennedy Way|Cuesta Drive|Grove Street|Lizzie Street|Fixlini Street|Flora Street|Toro Street|Peach Street|Walnut Street|Leff Street|Pepper Street|Phillips Lane|Benton Way|Ferrini Road|Cerro Romauldo Avenue|Felton Way|Patricia Drive|Rachel Street|Woodside Drive|Margarita Avenue|Meinecke Avenue|Ruth Street|Santa Lucia Avenue|Valley Vista Drive|Spooner Drive|Laurel Lane|Southwood Drive|Bushnell Street|Sinsheimer Park|Brook Street|Wilding Lane`;
-
-// Spoken incident types -> label
 const KINDS=[
  [/\b(11[- ]?8[0-3]|collision|crash|t[- ]?bone|rollover|vehicle (?:vs|versus)|hit and run|20001|20002|accident)\b/i,'COLLISION'],
  [/\b(structure fire|vehicle fire|vegetation fire|brush fire|smoke|flames|fire alarm)\b/i,'FIRE'],
- [/\b(shots? fired|gun|firearm|weapon|knife|stabb|246|245|417)\b/i,'WEAPON'],
+ [/\b(shots? fired|gun|firearm|weapon|knife|stabb\w*|246|245|417)\b/i,'WEAPON'],
  [/\b(domestic|273\.?5|415|disturbance|fight|argument|yelling)\b/i,'DISTURBANCE'],
- [/\b(211|robbery)\b/i,'ROBBERY'],
- [/\b(459|burglary|break[- ]in)\b/i,'BURGLARY'],
- [/\b(484|488|10851|theft|stolen|shoplift)\b/i,'THEFT'],
- [/\b(23152|23153|dui|drunk driver|reckless)\b/i,'DUI / RECKLESS'],
- [/\b(medical|unconscious|not breathing|overdose|chest pain|fall|seizure|ambulance)\b/i,'MEDICAL'],
- [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],
- [/\b(welfare check|5150|missing)\b/i,'WELFARE CHECK'],
- [/\b(alarm)\b/i,'ALARM'],
- [/\b(trespass|602)\b/i,'TRESPASS'],
- [/\b(vandal|594|graffiti)\b/i,'VANDALISM'],
- [/\b(pursuit|fleeing|evading|2800)\b/i,'PURSUIT'],
- [/\b(traffic stop|11[- ]?95|10[- ]?38)\b/i,'TRAFFIC STOP'],
+ [/\b(211|robbery)\b/i,'ROBBERY'],[/\b(459|burglary|break[- ]in)\b/i,'BURGLARY'],
+ [/\b(484|488|10851|theft|stolen|shoplift\w*)\b/i,'THEFT'],[/\b(23152|23153|dui|drunk driver|reckless)\b/i,'DUI / RECKLESS'],
+ [/\b(medical|unconscious|not breathing|overdose|chest pain|seizure|ambulance)\b/i,'MEDICAL'],
+ [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],[/\b(welfare check|5150|missing)\b/i,'WELFARE CHECK'],
+ [/\b(alarm)\b/i,'ALARM'],[/\b(trespass\w*|602)\b/i,'TRESPASS'],[/\b(vandal\w*|594|graffiti)\b/i,'VANDALISM'],
+ [/\b(pursuit|fleeing|evading|2800)\b/i,'PURSUIT'],[/\b(traffic stop|11[- ]?95|10[- ]?38)\b/i,'TRAFFIC STOP'],
 ];
+// Everyday and radio words that should never be "corrected" into a street name.
+const COMMON_EN=new Set(('the be to of and a in that have i it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us is are was were been has had did said going got yeah yes okay ok copy units unit clear code respond responding en route enroute arrived arrival scene subject suspect male female vehicle car truck white black blue red green silver gray grey tan brown wearing shirt hoodie jacket pants shorts hat last seen heading northbound southbound eastbound westbound north south east west party reporting injuries unknown possible medical fire engine medic medics ambulance sheriff deputy officer police dispatch county city station traffic collision alarm check welfare stolen warrant license plate negative affirmative standby stand cover backup need needs area block address location near front behind inside outside house home apartment lot parking store school park beach bridge freeway highway road street avenue drive lane court place boulevard circle ramp exit mile miles feet left right side corner intersection three four five six seven eight nine ten eleven twelve hundred thousand adult juvenile kid child man woman guy lady person dog phone call called caller advised advise states stating report reports refusing transport hospital jail cite cited arrest custody detained contact contacted attempt attempting coming leave leaving fled running walking driving stopped stop parked blocking lanes roadway shoulder median off under around toward towards via per while still again same another each every few more less much many very too here where why whom whose those thank thanks please sir roger received checking info information description update updated status available busy break priority emergency urgent cancel canceled disregard correction repeat male female').split(' '));
+// Dispatch vocabulary used to prime the speech model (local names it otherwise mishears).
+const PROMPT_BASE='San Luis Obispo County sheriff, police and fire dispatch. Units, copy, 10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150, code 3, RP.';
+const PROMPT_TOWNS='Paso Robles, Atascadero, Templeton, Morro Bay, Los Osos, Cambria, Pismo Beach, Grover Beach, Arroyo Grande, Nipomo, Oceano, Avila Beach.';
+const PROMPT_STREETS=['Higuera','Marsh','Santa Rosa','Foothill','Broad','Johnson','Madonna','Los Osos Valley Road','Tank Farm','El Camino Real','Grand Avenue','Niblick','Morro Road','Halcyon','Oak Park','Quintana'];
 
-/* ============================================================
-   SMALL HELPERS
-   ============================================================ */
-// Show unexpected errors on the page instead of failing silently (useful on phones with no console).
-function showErr(msg){const b=document.getElementById('errbar');if(!b)return;b.style.display='block';b.textContent='Problem: '+msg}
-window.addEventListener('error',e=>{if(e.message&&e.message!=='Script error.')showErr(e.message)});
-window.addEventListener('unhandledrejection',e=>console.warn('unhandled',e.reason));
-// AbortSignal.timeout is missing on older iOS; build it by hand.
-function timeoutSignal(ms){if(window.AbortSignal&&AbortSignal.timeout)return AbortSignal.timeout(ms);const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal}
-const IS_PHONE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+/* ================================================================
+   HELPERS
+   ================================================================ */
 const $=id=>document.getElementById(id);
-const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const fmtTime=d=>d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
 const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\"]/g,'\\$&');
+const IS_PHONE=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+function timeoutSignal(ms){if(window.AbortSignal&&AbortSignal.timeout)return AbortSignal.timeout(ms);const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal}
 function dist(a,b){const R=6371000,toR=x=>x*Math.PI/180,dLa=toR(b[0]-a[0]),dLo=toR(b[1]-a[1]);const h=Math.sin(dLa/2)**2+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
-function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let best=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));best=Math.min(best,c[j])}if(best>max)return max+1;p=c}return p[b.length]}
+function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let best=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));if(c[j]<best)best=c[j]}if(best>max)return max+1;p=c}return p[b.length]}
+function showErr(msg,action){const b=$('errbar');b.style.display='block';b.textContent=msg;if(action){const x=document.createElement('button');x.className='secondary';x.textContent=action[0];x.onclick=action[1];b.appendChild(x)}const c=document.createElement('button');c.className='secondary';c.textContent='DISMISS';c.onclick=()=>{b.style.display='none'};b.appendChild(c)}
+window.addEventListener('error',e=>{if(e.message&&e.message!=='Script error.')showErr('Something went wrong: '+e.message)});
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s)})}
+const fmtMi=v=>({0.25:'¼',0.5:'½',0.75:'¾'}[v]||(+v).toFixed(v<1?2:v%1?1:0).replace(/0$/,''));
+const fmtRadius=v=>{v=+v;const ft=Math.round(v*5280/10)*10;return `${fmtMi(v)} mi${v<1?` · ${ft.toLocaleString()} ft`:''}`};
 
-/* ============================================================
-   STREET INDEX  (spoken text -> canonical OSM street name)
-   ============================================================ */
+/* ================================================================
+   COUNTY STREET DATA (bundled streets.json from OpenStreetMap)
+   ================================================================ */
+const KX=111320*Math.cos(35.3*Math.PI/180),KY=110574;
+const SD={ready:false,names:[],refs:[],wn:null,wr:null,wc:null,off:null,x:null,y:null,bb:null,byName:new Map(),byRef:new Map(),grid:new Map(),baseNames:new Map(),baseRank:new Map()};
+const CELL=0.005,cellKey=(la,lo)=>Math.floor(la/CELL)*1e6+Math.floor(lo/CELL)+500000;
+async function loadStreetData(){
+  try{
+    const r=await fetch('streets.json',{signal:timeoutSignal(60000)});if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json(),W=d.ways,n=W.length;let total=0;for(const w of W)total+=w[3].length/2;
+    const x=new Float64Array(total),y=new Float64Array(total),off=new Uint32Array(n+1),wn=new Int32Array(n),wr=new Int32Array(n),wc=new Uint8Array(n),bb=new Float64Array(n*4);
+    let k=0;
+    for(let i=0;i<n;i++){const w=W[i],f=w[3];wn[i]=w[0];wr[i]=w[1];wc[i]=w[2];off[i]=k;let a=0,b=0,x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+      for(let j=0;j<f.length;j+=2){a+=f[j];b+=f[j+1];const X=b/1e5*KX,Y=a/1e5*KY;x[k]=X;y[k]=Y;if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y;k++}
+      bb[i*4]=x0;bb[i*4+1]=y0;bb[i*4+2]=x1;bb[i*4+3]=y1}
+    off[n]=k;
+    Object.assign(SD,{names:d.names,refs:d.refs,wn,wr,wc,off,x,y,bb});
+    for(let i=0;i<n;i++){
+      if(wn[i]>=0){const nm=d.names[wn[i]];let l=SD.byName.get(nm);if(!l)SD.byName.set(nm,l=[]);l.push(i)}
+      if(wr[i]>=0)for(const r0 of d.refs[wr[i]].split(';')){const r1=r0.trim();let l=SD.byRef.get(r1);if(!l)SD.byRef.set(r1,l=[]);l.push(i)}
+      for(let j=off[i];j<off[i+1];j++){ // rasterise each segment into ~400 m grid cells
+        const la=y[j]/KY,lo=x[j]/KX;addCell(cellKey(la,lo),i);
+        if(j+1<off[i+1]){const la2=y[j+1]/KY,lo2=x[j+1]/KX,steps=Math.ceil(Math.hypot(x[j+1]-x[j],y[j+1]-y[j])/350);for(let s=1;s<steps;s++)addCell(cellKey(la+(la2-la)*s/steps,lo+(lo2-lo)*s/steps),i)}
+      }
+    }
+    for(const nm of d.names){const b=baseOf(nm);if(!b)continue;let l=SD.baseNames.get(b);if(!l)SD.baseNames.set(b,l=[]);l.push(nm)}
+    for(let i=0;i<n;i++)if(wn[i]>=0){const b=baseOf(d.names[wn[i]]);const cur=SD.baseRank.get(b);if(cur==null||wc[i]<cur)SD.baseRank.set(b,wc[i])}
+    SD.ready=true;buildStreetIndex(d.names);
+    $('streetNote').textContent=`${d.names.length.toLocaleString()} county streets loaded for matching and mapping.`;
+    if(me)refreshNearby();
+  }catch(e){console.warn(e);$('streetNote').textContent='Could not load the county street list. Street matching is limited.'}
+}
+function addCell(key,i){let s=SD.grid.get(key);if(!s){s=[];SD.grid.set(key,s)}if(s[s.length-1]!==i)s.push(i)}
+function ptSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=t<0?0:t>1?1:t;const X=ax+t*dx,Y=ay+t*dy;return[Math.hypot(px-X,py-Y),X,Y]}
+function segX(ax,ay,bx,by,cx,cy,dx,dy){const r1=bx-ax,r2=by-ay,s1=dx-cx,s2=dy-cy,den=r1*s2-r2*s1;if(Math.abs(den)<1e-9)return null;const t=((cx-ax)*s2-(cy-ay)*s1)/den,u=((cx-ax)*r2-(cy-ay)*r1)/den;return(t>=0&&t<=1&&u>=0&&u<=1)?[ax+t*r1,ay+t*r2]:null}
+const toLL=(X,Y)=>[Y/KY,X/KX];
+function waysFor(s,town){
+  let ids=[];
+  if(s.hwy)ids=SD.byRef.get(s.ref)||[];
+  else for(const nm of (SD.baseNames.get(s.base)||[]))ids=ids.concat(SD.byName.get(nm)||[]);
+  if(town&&TOWNS[town]){const[la,lo]=TOWNS[town],X=lo*KX,Y=la*KY,R=9000;ids=ids.filter(i=>SD.bb[i*4]-R<X&&SD.bb[i*4+2]+R>X&&SD.bb[i*4+1]-R<Y&&SD.bb[i*4+3]+R>Y)}
+  return ids;
+}
+function crossLocal(a,b,town){
+  const A=waysFor(a,town),B=waysFor(b,town),hits=[];
+  for(const i of A)for(const j of B){
+    if(SD.bb[i*4]-40>SD.bb[j*4+2]||SD.bb[j*4]-40>SD.bb[i*4+2]||SD.bb[i*4+1]-40>SD.bb[j*4+3]||SD.bb[j*4+1]-40>SD.bb[i*4+3])continue;
+    for(let p=SD.off[i];p<SD.off[i+1]-1;p++)for(let q=SD.off[j];q<SD.off[j+1]-1;q++){
+      const ax=SD.x[p],ay=SD.y[p],bx=SD.x[p+1],by=SD.y[p+1],cx=SD.x[q],cy=SD.y[q],dx=SD.x[q+1],dy=SD.y[q+1];
+      const X=segX(ax,ay,bx,by,cx,cy,dx,dy);
+      if(X){hits.push([0,X[0],X[1],i,j]);continue}
+      for(const r of[ptSeg(ax,ay,cx,cy,dx,dy),ptSeg(bx,by,cx,cy,dx,dy),ptSeg(cx,cy,ax,ay,bx,by),ptSeg(dx,dy,ax,ay,bx,by)])if(r[0]<35)hits.push([r[0],r[1],r[2],i,j]);
+    }
+  }
+  if(!hits.length)return null;
+  const ref=town&&TOWNS[town]?TOWNS[town]:(me||null);
+  hits.sort((h1,h2)=>ref?dist(ref,toLL(h1[1],h1[2]))-dist(ref,toLL(h2[1],h2[2])):h1[0]-h2[0]);
+  // same pair of names meeting in far-apart places with no town heard: can't tell which one
+  if(!ref){const f=toLL(hits[0][1],hits[0][2]);if(hits.some(h=>dist(f,toLL(h[1],h[2]))>4000))return null}
+  const[la,lo]=toLL(hits[0][1],hits[0][2]),nm=w=>SD.wn[w]>=0?SD.names[SD.wn[w]]:SD.refs[SD.wr[w]];
+  return{lat:la,lon:lo,precise:true,label:`${a.hwy?a.ref:nm(hits[0][3])} & ${b.hwy?b.ref:nm(hits[0][4])}`};
+}
+function streetLocal(s,town){
+  const ids=waysFor(s,town);if(!ids.length)return null;
+  let sx=0,sy=0,c=0,x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  for(const i of ids)for(let p=SD.off[i];p<SD.off[i+1];p++){sx+=SD.x[p];sy+=SD.y[p];c++;x0=Math.min(x0,SD.x[p]);x1=Math.max(x1,SD.x[p]);y0=Math.min(y0,SD.y[p]);y1=Math.max(y1,SD.y[p])}
+  if(!(town&&TOWNS[town])&&Math.hypot(x1-x0,y1-y0)>5000)return null; // same name in several towns
+  let px=sx/c,py=sy/c,best=Infinity,bx=px,by=py;
+  if(town&&TOWNS[town]){const[la,lo]=TOWNS[town];px=lo*KX;py=la*KY}
+  for(const i of ids)for(let p=SD.off[i];p<SD.off[i+1]-1;p++){const r=ptSeg(px,py,SD.x[p],SD.y[p],SD.x[p+1],SD.y[p+1]);if(r[0]<best){best=r[0];bx=r[1];by=r[2]}}
+  const[la,lo]=toLL(bx,by);return{lat:la,lon:lo,precise:false};
+}
+function nearbyStreets(lat,lon,R){
+  const X=lon*KX,Y=lat*KY,dLa=R/KY+CELL,dLo=R/KX+CELL,seen=new Map();
+  for(let la=lat-dLa;la<=lat+dLa;la+=CELL)for(let lo=lon-dLo;lo<=lon+dLo;lo+=CELL){
+    for(const i of (SD.grid.get(cellKey(la,lo))||[])){
+      if(SD.wc[i]>=5)continue;const nm=SD.wn[i]>=0?SD.names[SD.wn[i]]:SD.refs[SD.wr[i]];if(!nm)continue;
+      let d=Infinity;for(let p=SD.off[i];p<SD.off[i+1]-1;p++)d=Math.min(d,ptSeg(X,Y,SD.x[p],SD.y[p],SD.x[p+1],SD.y[p+1])[0]);
+      if(d<=R&&(!seen.has(nm)||seen.get(nm)>d))seen.set(nm,d);
+    }
+  }
+  return[...seen.entries()].sort((a,b)=>a[1]-b[1]).map(e=>e[0]);
+}
+
+/* ================================================================
+   STREET-NAME PARSING (spoken text -> addresses / cross-streets)
+   ================================================================ */
 const SUFFIX={street:1,st:1,road:1,rd:1,avenue:1,ave:1,av:1,drive:1,dr:1,lane:1,ln:1,way:1,court:1,ct:1,place:1,pl:1,boulevard:1,blvd:1,circle:1,cir:1,parkway:1,pkwy:1,highway:1,hwy:1,trail:1,terrace:1,loop:1,canyon:0,grade:1};
 const DIRS={north:1,south:1,east:1,west:1,n:1,s:1,e:1,w:1};
-// Base names that are also ordinary words: only accepted with a house number, a street suffix, or as part of a cross-street.
-const COMMON=new Set('park pine oak main grand bay south north east west high mesa price spring branch ocean front willow union center church college market river lake hill hills view valley vista sunset sunrise central division industrial airport broad garden palm mill pacific king morro walnut peach flora grove pepper vine field orange lemon cherry olive cedar elm maple ash ridge creek canyon station rail railroad short long first second third fourth fifth sixth seventh eighth ninth tenth state school traffic fire police emergency medical ocean beach'.split(' '));
-// Town names also need a suffix/number to count as a street ("Atascadero" alone is the town, not Atascadero Road).
+const COMMON=new Set('park pine oak main grand bay south north east west high mesa price spring branch ocean front willow union center church college market river lake hill hills view valley vista sunset sunrise central division industrial airport broad garden palm mill pacific king morro walnut peach flora grove pepper vine field orange lemon cherry olive cedar elm maple ash ridge creek canyon station rail railroad short long first second third fourth fifth sixth seventh eighth ninth tenth state school traffic fire police emergency medical beach unit units code'.split(' '));
 for(const t of Object.keys(TOWNS))COMMON.add(t);
-const STOP=new Set('| the a an and at of to on in is be on by for or with unit units copy clear code ten'.split(' '));
-let streetIndex=new Map(); // base -> canonical
-let streetBases=[];        // list of bases for fuzzy matching
-function baseOf(name){
-  const t=name.toLowerCase().replace(/['’.]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);
-  while(t.length>1&&DIRS[t[0]])t.shift();
-  while(t.length>1&&SUFFIX[t[t.length-1]]===1)t.pop();
-  return t.join(' ');
-}
+const STOP=new Set('| the a an and at of to on in is be by for or with unit units copy clear code ten'.split(' '));
+const BUILTIN='Higuera Street|Marsh Street|Monterey Street|Santa Rosa Street|Foothill Boulevard|Broad Street|Johnson Avenue|Osos Street|Chorro Street|Madonna Road|Los Osos Valley Road|Tank Farm Road|Orcutt Road|Grand Avenue|California Boulevard|Prado Road|Spring Street|Niblick Road|Creston Road|El Camino Real|Morro Road|Main Street|Quintana Road|Halcyon Road|Fair Oaks Avenue|Branch Street|Ramona Avenue|Oak Park Boulevard|Kennedy Way|Las Tablas Road|Traffic Way|Shell Beach Road|Price Street|Price Canyon Road|Tefft Street|Thompson Avenue|Los Berros Road|South Bay Boulevard';
+let streetIndex=new Map(),streetBases=[];
+function baseOf(name){const t=name.toLowerCase().replace(/['’.]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);while(t.length>1&&DIRS[t[0]])t.shift();while(t.length>1&&SUFFIX[t[t.length-1]]===1)t.pop();return t.join(' ')}
 function buildStreetIndex(names){
   streetIndex=new Map();
-  for(const n of names){const b=baseOf(n);if(!b||b.length<3||/^\d+$/.test(b)||STOP.has(b))continue;
-    if(!streetIndex.has(b)||n.length<streetIndex.get(b).length)streetIndex.set(b,n);}
+  for(const n of names){const b=baseOf(n);if(!b||b.length<3||/^\d+$/.test(b)||STOP.has(b))continue;if(!streetIndex.has(b)||n.length<streetIndex.get(b).length)streetIndex.set(b,n)}
   streetBases=[...streetIndex.keys()];
-  $('streetNote').textContent=`${streetIndex.size.toLocaleString()} county street names loaded for address matching.`;
 }
-async function overpass(q){
-  let lastErr;
-  for(const url of OVERPASS){
-    try{const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:timeoutSignal(q.includes('out:csv')?130000:25000)});
-      if(!r.ok)throw new Error('HTTP '+r.status);return await (q.includes('out:csv')?r.text():r.json());}
-    catch(e){lastErr=e}
-  }
-  throw lastErr;
-}
-async function loadStreets(){
-  buildStreetIndex(BUILTIN_STREETS.split('|'));
-  const cached=store.get('sloStreets_v1',null);
-  if(cached&&Date.now()-cached.t<30*864e5){buildStreetIndex(cached.names.concat(BUILTIN_STREETS.split('|')));return}
-  try{
-    const txt=await overpass(`[out:csv(name;false)][timeout:120];way["highway"]["name"](${BBOX.s},${BBOX.w},${BBOX.n},${BBOX.e});out tags;`);
-    const names=[...new Set(txt.split('\n').map(s=>s.trim()).filter(Boolean))];
-    if(names.length>200){store.set('sloStreets_v1',{t:Date.now(),names});buildStreetIndex(names.concat(BUILTIN_STREETS.split('|')))}
-  }catch(e){console.warn('street list',e);$('streetNote').textContent=`Using built-in list of ${streetIndex.size} major streets (OpenStreetMap unavailable).`}
-}
-
-/* ---- spoken numbers -> digits ("twelve hundred", "fourteen twenty", "one two three") ---- */
-const ONES={zero:0,oh:0,o:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+const ONES={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
 const TENS={twenty:20,thirty:30,forty:40,fourty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
 function wordsToDigits(tokens){
-  const out=[];let i=0;
-  const isNum=w=>w in ONES||w in TENS||w==='hundred'||w==='thousand';
+  const out=[];let i=0;const isNum=w=>w in ONES||w in TENS||w==='hundred'||w==='thousand';
   while(i<tokens.length){
-    if(!isNum(tokens[i])||tokens[i]==='o'){out.push(tokens[i]);i++;continue}
-    let j=i;while(j<tokens.length&&(isNum(tokens[j]))&&j-i<8)j++;
-    const seq=tokens.slice(i,j);
-    let val=null;
-    if(seq.includes('hundred')||seq.includes('thousand')){
-      let total=0,cur=0;for(const w of seq){if(w in ONES)cur+=ONES[w];else if(w in TENS)cur+=TENS[w];else if(w==='hundred')cur=(cur||1)*100;else if(w==='thousand'){total+=(cur||1)*1000;cur=0}}val=String(total+cur);
-    }else if(seq.every(w=>w in ONES&&ONES[w]<10)&&seq.length>1){val=seq.map(w=>ONES[w]).join('')}
-    else{ // pairs: "fourteen twenty" -> 1420, "twenty five" -> 25
-      const parts=[];let k=0;while(k<seq.length){let v=seq[k]in TENS?TENS[seq[k]]:ONES[seq[k]];if(seq[k]in TENS&&k+1<seq.length&&seq[k+1]in ONES&&ONES[seq[k+1]]<10&&ONES[seq[k+1]]>0){v+=ONES[seq[k+1]];k++}parts.push(v);k++}
-      val=parts.map((v,ix)=>ix>0&&v<10?'0'+v:String(v)).join('');
-    }
+    if(!isNum(tokens[i])){out.push(tokens[i]);i++;continue}
+    let j=i;while(j<tokens.length&&isNum(tokens[j])&&j-i<8)j++;
+    const seq=tokens.slice(i,j);let val;
+    if(seq.includes('hundred')||seq.includes('thousand')){let total=0,cur=0;for(const w of seq){if(w in ONES)cur+=ONES[w];else if(w in TENS)cur+=TENS[w];else if(w==='hundred')cur=(cur||1)*100;else{total+=(cur||1)*1000;cur=0}}val=String(total+cur)}
+    else if(seq.length>1&&seq.every(w=>w in ONES&&ONES[w]<10))val=seq.map(w=>ONES[w]).join('');
+    else{const parts=[];let k=0;while(k<seq.length){let v=seq[k]in TENS?TENS[seq[k]]:ONES[seq[k]];if(seq[k]in TENS&&k+1<seq.length&&seq[k+1]in ONES&&ONES[seq[k+1]]<10&&ONES[seq[k+1]]>0){v+=ONES[seq[k+1]];k++}parts.push(v);k++}val=parts.map((v,ix)=>ix>0&&v<10?'0'+v:String(v)).join('')}
     out.push(val);i=j;
   }
   return out;
@@ -308,476 +422,648 @@ function wordsToDigits(tokens){
 function tokenize(text){
   const raw=text.toLowerCase().replace(/(\d),(\d)/g,'$1$2').replace(/&/g,' and ').replace(/[,.;:!?]+/g,' | ').replace(/[^a-z0-9|\- ]/g,' ').split(/\s+/).filter(Boolean);
   const split=[];for(const t of raw){if(/^\d+-\d+$/.test(t))split.push(t);else split.push(...t.split('-').filter(Boolean))}
-  // merge digit-by-digit reads: "2 3 5" -> "235"
-  const out=[];for(const t of wordsToDigits(split)){if(/^\d$/.test(t)&&out.length&&/^\d{1,4}$/.test(out[out.length-1])&&out._digits){out[out.length-1]+=t}else{out.push(t)}out._digits=/^\d$/.test(t)}
+  const out=[];let dig=false;for(const t of wordsToDigits(split)){if(/^\d$/.test(t)&&dig&&/^\d{1,4}$/.test(out[out.length-1]))out[out.length-1]+=t;else out.push(t);dig=/^\d$/.test(t)}
   return out;
 }
 function matchStreetAt(tok,i){
   for(let n=Math.min(4,tok.length-i);n>=1;n--){
-    let words=tok.slice(i,i+n);
-    if(words.some(w=>STOP.has(w)))continue;
-    const cand=words.join(' ');
-    let base=null,fuzzy=false;
+    const words=tok.slice(i,i+n);if(words.some(w=>STOP.has(w)))continue;
+    const cand=words.join(' ');let base=null,fuzzy=false;
     if(streetIndex.has(cand))base=cand;
-    else if(cand.length>=6){
-      const max=cand.length>=9?2:1;let best=max+1;
-      for(const b of streetBases){if(b[0]!==cand[0]&&cand.length<9)continue;const d=lev(cand,b,max);if(d<best){best=d;base=b}}
-      if(best>max)base=null;else fuzzy=true;
-    }
+    else if(cand.length>=6){const max=cand.length>=9?2:1;let best=max+1;for(const b of streetBases){if(b[0]!==cand[0]&&cand.length<9)continue;const d=lev(cand,b,max);if(d<best){best=d;base=b}}if(best>max)base=null;else fuzzy=true}
     if(!base)continue;
     let len=n;const hasSuffix=i+n<tok.length&&SUFFIX[tok[i+n]]!==undefined;if(hasSuffix)len++;
     return{base,canon:streetIndex.get(base),len,hasSuffix,common:COMMON.has(base)||base.length<5,fuzzy,words:tok.slice(i,i+len)};
   }
   return null;
 }
-function findTown(tok){
-  const s=' '+tok.join(' ')+' ';let found=null;
-  for(const t of Object.keys(TOWNS).sort((a,b)=>b.length-a.length)){if(s.includes(' '+t+' ')){found=t;break}}
-  return found;
-}
-/* Extract locations from one transmission. Returns list sorted best-first. */
+function findTown(tok){const s=' '+tok.join(' ')+' ';for(const t of Object.keys(TOWNS).sort((a,b)=>b.length-a.length))if(s.includes(' '+t+' '))return t;return null}
 function extract(text){
-  const tok=tokenize(text);const found=[];const used=new Set();
-  const take=(i,len)=>{for(let k=i;k<i+len;k++)used.add(k)};
-  const hwyAt=(i)=>{ // "highway 101", "101 northbound"
-    if(['highway','hwy','route','freeway','sr','interstate'].includes(tok[i])&&HIGHWAYS[tok[i+1]])return{ref:HIGHWAYS[tok[i+1]],len:2,words:tok.slice(i,i+2)};
-    if(tok[i]==='101')return{ref:'US 101',len:1,words:['101']};
-    return null;
-  };
+  const tok=tokenize(text),found=[],used=new Set(),take=(i,len)=>{for(let k=i;k<i+len;k++)used.add(k)};
+  const hwyAt=i=>{if(['highway','hwy','route','freeway','sr','interstate'].includes(tok[i])&&HIGHWAYS[tok[i+1]])return{hwy:true,ref:HIGHWAYS[tok[i+1]],base:HIGHWAYS[tok[i+1]],canon:HIGHWAYS[tok[i+1]],len:2,words:tok.slice(i,i+2)};if(tok[i]==='101')return{hwy:true,ref:'US 101',base:'US 101',canon:'US 101',len:1,words:['101']};return null};
+  const S=m=>({base:m.base,canon:m.canon,hwy:!!m.hwy,ref:m.ref});
+  // town names ("Arroyo Grande", "Morro Bay") are towns, not streets, unless a street suffix follows
+  let town=null;
+  for(const t of Object.keys(TOWNS).sort((a,b)=>b.length-a.length)){const tw=t.split(' ');
+    for(let i=0;i+tw.length<=tok.length;i++){if(tw.every((w,k)=>tok[i+k]===w)&&!used.has(i)&&SUFFIX[tok[i+tw.length]]!==1){take(i,tw.length);town=town||t}}}
   for(let i=0;i<tok.length;i++){
     if(used.has(i))continue;
-    // 1) house number + street
-    if(/^\d{2,5}$/.test(tok[i])&&!/^10$/.test(tok[i])){
-      let j=i+1;if(tok[j]==='block'){j++;if(tok[j]==='of')j++}if(tok[j]==='hundred'&&tok[j+1]==='block'){j+=2;if(tok[j]==='of')j++}
-      if(DIRS[tok[j]])j++;
+    if(/^\d{2,5}$/.test(tok[i])&&tok[i]!=='10'){
+      let j=i+1;if(tok[j]==='block'){j++;if(tok[j]==='of')j++}if(tok[j]==='hundred'&&tok[j+1]==='block'){j+=2;if(tok[j]==='of')j++}if(DIRS[tok[j]])j++;
       const m=matchStreetAt(tok,j);
-      // "1183 Foothill and Santa Rosa" = code 11-83 + cross street, not a house number
       const codeLike=/^1[01]\d\d$/.test(tok[i])&&m&&['and','at'].includes(tok[j+m.len])&&matchStreetAt(tok,j+m.len+1);
-      if(m&&!codeLike){found.push({type:'address',num:tok[i],street:m.canon,base:m.base,spoken:m.hasSuffix?m.canon:m.base.replace(/\b\w/g,c=>c.toUpperCase()),label:`${tok[i]} ${m.canon}`,score:3,words:[tok[i],...m.words]});take(i,j-i+m.len);i=j+m.len-1;continue}
+      if(m&&!codeLike){found.push({type:'address',num:tok[i],s:S(m),spoken:m.hasSuffix?m.canon:titleCase(m.base),label:`${tok[i]} ${m.canon}`,score:3,words:[tok[i],...m.words]});take(i,j-i+m.len);i=j+m.len-1;continue}
     }
-    // 2) street (or highway) possibly followed by "and/at" cross street
-    const h=hwyAt(i);const m=h?null:matchStreetAt(tok,i);
-    const first=h?{canon:h.ref,base:h.ref,len:h.len,hwy:true,words:h.words}:m;
-    if(!first)continue;
-    let k=i+first.len;
-    while(/^(north|south|east|west)bound$|^(nb|sb|eb|wb)$/.test(tok[k]||''))k++;
+    const h=hwyAt(i),m=h?null:matchStreetAt(tok,i),first=h||m;if(!first)continue;
+    let k=i+first.len;while(/^(north|south|east|west)bound$|^(nb|sb|eb|wb)$/.test(tok[k]||''))k++;
     if(['and','at','near','by','off'].includes(tok[k])&&k+1<tok.length){
-      const h2=hwyAt(k+1);const m2=h2?null:matchStreetAt(tok,k+1);
-      const second=h2?{canon:h2.ref,base:h2.ref,len:h2.len,hwy:true,words:h2.words}:m2;
+      const h2=hwyAt(k+1),m2=h2?null:matchStreetAt(tok,k+1),second=h2||m2;
       if(second&&second.base!==first.base&&!(second.common&&!second.hasSuffix&&!second.hwy&&second.fuzzy)){
-        found.push({type:'cross',a:first.canon,b:second.canon,aHwy:!!first.hwy,bHwy:!!second.hwy,label:`${first.canon} & ${second.canon}`,score:2.5,words:[...first.words,...second.words]});
-        take(i,k+1-i+second.len);i=k+second.len;continue;
-      }
+        found.push({type:'cross',a:S(first),b:S(second),label:`${first.canon} & ${second.canon}`,score:2.5,words:[...first.words,...second.words]});take(i,k+1-i+second.len);i=k+second.len;continue}
     }
-    if(k>i+first.len)k=i+first.len;
-    if(first.hwy||(m&&(!m.common||m.hasSuffix)&&!(m.fuzzy&&!m.hasSuffix))){
-      found.push({type:'street',street:first.canon,hwy:!!first.hwy,label:first.canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=k-1;
+    const placeCue=['on','at','near','off','from','toward','towards','to','of'].includes(tok[i-1]);
+    const major=m&&(SD.baseRank.get(m.base)??9)<=2;
+    if(first.hwy||(m&&(m.hasSuffix||(placeCue&&!m.common&&!m.fuzzy&&major)))){found.push({type:'street',s:S(first),label:first.canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=i+first.len-1}
+  }
+  found.sort((a,b)=>b.score-a.score);
+  return{locs:found,town};
+}
+const kindsOf=text=>KINDS.filter(([re])=>re.test(text)).map(([,l])=>l).slice(0,2);
+
+/* ================================================================
+   DOUBLE-CHECK: merge two hearings, then snap names to the street list
+   ================================================================ */
+let PROMPT_WORDS=new Set();
+const coreOf=w=>w.toLowerCase().replace(/[^a-z0-9-]/g,'');
+const wordsOf=t=>t.split(/\s+/).map(coreOf).filter(Boolean);
+function simWord(a,b){if(a===b)return 1;if(a.replace(/-/g,'')===b.replace(/-/g,''))return 1;const m=Math.max(a.length,b.length);return 1-lev(a,b,m)/m}
+const hasMatch=(w,list)=>list.some(x=>simWord(w,x)>=0.5);
+const HALLUCINATIONS=/^(thank you|thanks for watching|you|bye|okay|uh|um|so|\.+|thank you for watching|please subscribe)[.!?\s]*$/i;
+function cleanText(t){
+  t=(t||'').replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|♪/g,' ').replace(/\s+/g,' ').trim();
+  if(!t||HALLUCINATIONS.test(t)||/subscribe|thanks for watching/i.test(t))return'';
+  const w=wordsOf(t);if(w.length>6&&new Set(w).size/w.length<.3)return'';
+  return t;
+}
+function promptEcho(t){ // the primed hearing repeating the word list back on noise
+  const w=wordsOf(t),p=wordsOf(currentPrompt);if(w.length<4)return false;
+  for(let i=0;i+4<=w.length;i++){const g=w.slice(i,i+4).join(' ');if(p.join(' ').includes(g))return true}return false;
+}
+function reconcile(primed,plain){
+  if(primed&&promptEcho(primed))primed='';
+  if(!primed&&!plain)return null;
+  if(!plain){const p=wordsOf(primed);if(p.filter(w=>PROMPT_WORDS.has(w)).length>=Math.max(1,p.length*0.5))return null;return{text:primed,unc:new Set(p),agree:false,single:true}}
+  if(!primed)return{text:plain,unc:new Set(),agree:false};
+  const p=wordsOf(primed),q=wordsOf(plain);
+  const invented=p.filter(w=>PROMPT_WORDS.has(w)&&!hasMatch(w,q));
+  const usePrimed=p.length>=0.75*q.length&&invented.length===0;
+  const chosen=usePrimed?primed:plain,other=usePrimed?q:p;
+  const known=w=>streetIndex.has(w)||TOWNS[w]||[...streetIndex.keys()].length&&streetBases.some(b=>b.split(' ').includes(w)&&b.length>4);
+  const unc=new Set(wordsOf(chosen).filter(w=>!COMMON_EN.has(w)&&w.length>2&&!/^\d/.test(w)&&!hasMatch(w,other)&&!known(w)));
+  return{text:chosen,unc,agree:unc.size===0,usedPrimed:usePrimed};
+}
+function snapNames(text){
+  const parts=text.split(/(\s+)/),W=[];
+  parts.forEach((p,ix)=>{if(!p.trim())return;const m=p.match(/^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$/);W.push({ix,lead:m[1],body:m[2],trail:m[3],core:coreOf(m[2]),cap:/^[A-Z]/.test(m[2])})});
+  const fixes=[],townKeys=Object.keys(TOWNS).filter(t=>t.length>=4);
+  const exactAt=i=>{for(let n=Math.min(4,W.length-i);n>=1;n--){const c=W.slice(i,i+n).map(w=>w.core).join(' ');if(streetIndex.has(c)||TOWNS[c])return n}return 0};
+  for(let i=0;i<W.length;i++){
+    const ex=exactAt(i);if(ex){i+=ex-1;continue} // already a real name
+    for(let n=Math.min(3,W.length-i);n>=1;n--){
+      const win=W.slice(i,i+n);if(win.some(w=>!w.core||/^\d/.test(w.core)||(!w.cap&&(COMMON_EN.has(w.core)||STOP.has(w.core)))))continue;
+      if(n>1&&win.slice(0,-1).some(w=>w.trail))continue;
+      const prev=i>0?W[i-1].core:'',next=i+n<W.length?W[i+n].core:'',after=i+n+1<W.length?W[i+n+1].core:'',before=i>1?W[i-2].core:'';
+      const nextSuffix=SUFFIX[next]===1,numBefore=/^\d{2,5}$/.test(prev)||(prev==='of'&&/^block$/.test(before));
+      const strong=nextSuffix||numBefore;
+      const partner=(['and','at'].includes(next)&&(streetIndex.has(after)||streetIndex.has(after+' '+(W[i+n+2]?W[i+n+2].core:''))))||(['and','at'].includes(prev)&&streetIndex.has(before));
+      const medium=['at','on','near','off','of','and'].includes(prev)||['and','at'].includes(next);
+      const atStart=i<=1&&!W.slice(0,i).some(w=>w.trail),townCtx=atStart||['in','to','of','near'].includes(prev)||['units','unit','pd','police','fire'].includes(next);
+      if(!win.every(w=>w.cap)&&!strong)continue;
+      if(n===1&&(COMMON_EN.has(win[0].core)||win[0].core.length<4))continue;
+      const c=win.map(w=>w.core).join(' '),cz=c.replace(/ /g,''),L=cz.length;
+      let best=null,bd=99;
+      if(townCtx){const tAllow=L>=11?3:L>=8?2:L>=4?1:0;for(const t of townKeys){const d=lev(cz,t.replace(/ /g,''),tAllow);if(d<=tAllow&&d<bd){bd=d;best={to:titleCase(t),town:true}}}}
+      // street names only where the sentence says it's a place
+      const sAllow=strong||partner?(L>=11?3:L>=6?2:L>=5?1:0):medium?(L>=6?1:0):0;
+      if(sAllow)for(const b of streetBases){if(Math.abs(b.length-L)>sAllow+1)continue;const d=lev(cz,b.replace(/ /g,''),sAllow);
+        if(d<=sAllow&&(d<bd||(d===bd&&best&&!best.town&&(SD.baseRank.get(b)??9)<(SD.baseRank.get(best.base)??9)))){
+          if(d>=2&&b[0]!==cz[0]&&L<6)continue;bd=d;best={to:displayBase(b),base:b}}}
+      if(!best||bd===0)continue;
+      const from=win.map(w=>w.body).join(' ');
+      if(best.to.toLowerCase()===from.toLowerCase())break;
+      win[0].body=best.to;for(let k=1;k<n;k++){win[k].body='';win[k].lead='';}win[0].trail=win[n-1].trail;for(let k=1;k<n;k++)win[k].trail='';
+      fixes.push({from,to:best.to});i+=n-1;break;
     }
   }
-  const town=findTown(tok.filter((_,ix)=>!used.has(ix)));
-  found.sort((a,b)=>b.score-a.score);
-  return{locs:found,town,tokens:tok};
+  for(const w of W)parts[w.ix]=w.lead+w.body+w.trail;
+  let out=parts.join('').replace(/\s{2,}/g,' ').trim();
+  out=out.replace(/\b(UNIX|Unix|unix|Unis|unis|Eunice|eunice)\b/g,'units');
+  // radio codes: "10 4" -> 10-4, "1183 at ..." -> 11-83 (unless it's a house number)
+  out=out.replace(/\b(10|11) (\d{1,2})\b(?! ?(block|hundred))/g,'$1-$2');
+  out=out.replace(/\b(1[01])(\d{2})\b/g,(m,a,b,offset)=>{const rest=tokenize(out.slice(offset+m.length));let j=0;if(rest[j]==='block'){j++;if(rest[j]==='of')j++}const s=matchStreetAt(rest,j);if(s&&!(['and','at'].includes(rest[j+s.len])&&matchStreetAt(rest,j+s.len+1)))return m;return a+'-'+b});
+  return{text:out,fixes};
 }
-function kindsOf(text){return KINDS.filter(([re])=>re.test(text)).map(([,l])=>l).slice(0,2)}
+function displayBase(b){const nm=streetIndex.get(b)||b;const t=nm.split(' ');let i=0,j=t.length;while(j-i>1&&DIRS[t[i].toLowerCase()])i++;while(j-i>1&&SUFFIX[t[j-1].toLowerCase()]===1)j--;return t.slice(i,j).join(' ')}
 
-/* ============================================================
-   GEOCODING  (Nominatim for addresses, Overpass for intersections/streets)
-   ============================================================ */
-const geoCache=new Map();
-let nomChain=Promise.resolve();
-function nominatim(params){ // serialised + rate limited to 1 req/s per usage policy
-  const p=nomChain.then(async()=>{
-    const u=new URL('https://nominatim.openstreetmap.org/search');
-    Object.entries({format:'jsonv2',limit:'1',countrycodes:'us',bounded:'1',viewbox:`${BBOX.w},${BBOX.n},${BBOX.e},${BBOX.s}`,...params}).forEach(([k,v])=>u.searchParams.set(k,v));
-    try{const r=await fetch(u,{signal:timeoutSignal(15000)});const j=r.ok?await r.json():[];await sleep(1100);return j}catch(e){await sleep(1100);throw e}
-  });nomChain=p.catch(()=>{});return p;
+/* ---- optional Claude review ---- */
+async function claudeReview(entry){
+  const key=store.get('anthropicKey',''),on=$('optClaude').checked;if(!key||!on)return null;
+  const names=[...new Set([...entry.fixes.map(f=>f.to),...entry.locs.map(l=>l.label),...watchStreets.slice(0,10).map(w=>w.name)])].slice(0,20);
+  const recent=lines.filter(l=>l!==entry&&l.final).slice(-3).map(l=>l.text);
+  const sys='You correct speech-to-text transcripts of San Luis Obispo County, California sheriff, police and fire radio dispatch. You get two independent machine hearings of one transmission and a merged version. Return the most likely exact words spoken. Fix misheard street names, town names, radio and penal codes (10-4, 11-83, 415, 459), unit numbers and common dispatch phrases. Keep numbers both hearings agree on. Never add details that neither hearing supports. If unsure, keep the merged version. Reply with JSON only: {"text":"..."}';
+  const user=JSON.stringify({hearing_1:entry.primed||'',hearing_2:entry.plain||'',merged:entry.text,local_names_that_may_appear:names,recent_calls:recent});
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:timeoutSignal(20000),headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:300,system:sys,messages:[{role:'user',content:user}]})});
+    const j=await r.json();
+    if(!r.ok){$('keyNote').textContent='Claude check failed: '+(j.error&&j.error.message||r.status);return null}
+    const m=(j.content&&j.content[0]&&j.content[0].text||'').match(/\{[\s\S]*\}/);if(!m)return null;
+    const t=JSON.parse(m[0]).text;$('keyNote').textContent='Claude check is working.';return typeof t==='string'&&t.trim()?t.trim():null;
+  }catch(e){$('keyNote').textContent='Claude check failed: '+e.message;return null}
 }
-function areaFilter(town){if(town&&TOWNS[town]){const[la,lo]=TOWNS[town];return`(around:9000,${la},${lo})`}return`(${BBOX.s},${BBOX.w},${BBOX.n},${BBOX.e})`}
-function wayFilter(name,isHwy,town){
-  if(isHwy)return`way["highway"]["ref"~"(^|;)${reEsc(name)}(;|$)"]${areaFilter(town)}`;
-  const b=baseOf(name);return`way["highway"]["name"~"^(north |south |east |west )?${reEsc(b)}( |$)",i]${areaFilter(town)}`;
+
+/* ================================================================
+   GEOCODING
+   ================================================================ */
+const geoCache=new Map();let nomChain=Promise.resolve(),nomLast=0;
+function nominatim(path,params){
+  const p=nomChain.then(async()=>{const wait=1100-(Date.now()-nomLast);if(wait>0)await sleep(wait);nomLast=Date.now();
+    const u=new URL('https://nominatim.openstreetmap.org/'+path);Object.entries({format:'jsonv2',...params}).forEach(([k,v])=>u.searchParams.set(k,v));
+    const r=await fetch(u,{signal:timeoutSignal(12000)});return r.ok?r.json():[]});
+  nomChain=p.catch(()=>{});return p;
 }
+const searchParams=extra=>({limit:'5',countrycodes:'us',bounded:'1',viewbox:`${BBOX.w},${BBOX.n},${BBOX.e},${BBOX.s}`,...extra});
 async function geocode(loc,town){
   const key=JSON.stringify([loc.label,town]);if(geoCache.has(key))return geoCache.get(key);
   let res=null;
   try{
     if(loc.type==='address'){
-      // Use the street as spoken (no guessed suffix), and the town heard on the radio if any.
-      const p={street:`${loc.num} ${loc.spoken||loc.street}`,state:'California'};if(town)p.city=townName(town);
-      let r=await nominatim(p);
-      if(!r.length&&!town){p.street=`${loc.num} ${loc.street}`;r=await nominatim(p)}
-      if(r.length){
-        res={lat:+r[0].lat,lon:+r[0].lon,precise:true,name:r[0].display_name.split(',').slice(0,3).join(',')};
-        if(town&&TOWNS[town]&&dist(TOWNS[town],[res.lat,res.lon])>12000)res=null; // wrong town
-        const parts=r[0].display_name.split(',').map(x=>x.trim());const label=/^\d+$/.test(parts[0])?`${parts[0]} ${parts[1]}`:parts[0];if(res)loc.label=label;
-      }
-      if(!res)
-res=await geocode({type:'street',street:loc.street,label:loc.street},town);
-    }else if(loc.type==='cross'){
-      const q=`[out:json][timeout:25];${wayFilter(loc.a,loc.aHwy,town)}->.a;${wayFilter(loc.b,loc.bHwy,town)}->.b;node(w.a)(w.b)->.x;.x out 1;node(w.b)(around.a:60);out 1;`;
-      const r=await overpass(q);
-      if(r.elements&&r.elements.length){const e=r.elements[0];res={lat:e.lat,lon:e.lon,precise:true,name:loc.label}}
-      else res=await geocode({type:'street',street:loc.b,hwy:loc.bHwy,label:loc.b},town)||await geocode({type:'street',street:loc.a,hwy:loc.aHwy,label:loc.a},town);
-    }else if(loc.type==='street'){
-      const r=await overpass(`[out:json][timeout:25];${wayFilter(loc.street,loc.hwy,town)};out center 30;`);
-      const els=(r.elements||[]).filter(e=>e.center);
-      if(els.length){
-        const ref=town&&TOWNS[town]?TOWNS[town]:null;
-        let lat,lon;
-        if(ref){els.sort((a,b)=>dist(ref,[a.center.lat,a.center.lon])-dist(ref,[b.center.lat,b.center.lon]));({lat,lon}=els[0].center)}
-        else{lat=els.reduce((s,e)=>s+e.center.lat,0)/els.length;lon=els.reduce((s,e)=>s+e.center.lon,0)/els.length}
-        // too spread out (same name in several towns) and no town context -> not mappable
-        const spread=Math.max(...els.map(e=>dist([lat,lon],[e.center.lat,e.center.lon])));
-        if(ref||spread<4000)res={lat,lon,precise:false,name:loc.street+(town?`, ${town}`:'')};
-      }
-    }
+      const p=searchParams({limit:'1',street:`${loc.num} ${loc.spoken}`,state:'California'});if(town)p.city=townName(town);
+      let r=await nominatim('search',p);if(!r.length&&!town){p.street=`${loc.num} ${loc.s.canon}`;r=await nominatim('search',p)}
+      if(r.length){res={lat:+r[0].lat,lon:+r[0].lon,precise:true};if(town&&TOWNS[town]&&dist(TOWNS[town],[res.lat,res.lon])>12000)res=null;
+        else{const parts=r[0].display_name.split(',').map(x=>x.trim());res.label=/^\d+$/.test(parts[0])?`${parts[0]} ${parts[1]}`:parts[0]}}
+      if(!res&&SD.ready)res=streetLocal(loc.s,town);
+    }else if(SD.ready&&loc.type==='cross')res=crossLocal(loc.a,loc.b,town)||streetLocal(loc.b,town)||streetLocal(loc.a,town);
+    else if(SD.ready&&loc.type==='street')res=streetLocal(loc.s,town);
   }catch(e){console.warn('geocode',e)}
   geoCache.set(key,res);return res;
 }
 
-/* ============================================================
+/* ================================================================
    MAP
-   ============================================================ */
-// If the map library can't load (blocked network, offline, in-app file preview), keep everything else working.
+   ================================================================ */
 const MAP_OK=!!window.L;
-if(!MAP_OK){
-  const NOOP=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>'':NOOP,apply:()=>NOOP});
-  window.L=NOOP;
-  document.getElementById('map').innerHTML='<div class="maperr">The map couldn\'t load here. Open this page from its web address (for example GitHub Pages) in Safari or Chrome. Transcripts and alerts still work.</div>';
-}
-const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([35.30,-120.66],11);
-// OpenStreetMap tiles (full street names) darkened with a CSS filter to match the theme.
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,className:'dark-tiles',attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+if(!MAP_OK){const NOOP=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>'':NOOP,apply:()=>NOOP});window.L=NOOP;$('map').innerHTML='<div class="maperr">The map couldn\'t load. Check your connection and reload. Transcripts and alerts still work.</div>'}
+const map=L.map('map',{zoomControl:false,preferCanvas:true,scrollWheelZoom:false,tapTolerance:20}).setView([35.28,-120.66],11);
+L.control.zoom({position:'bottomright'}).addTo(map);
+const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'}).addTo(map);
+L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}).addTo(map);
+// Desktop: wheel-zoom only after you click into the map, so scrolling the page never gets stuck.
+map.on('click focus',()=>map.scrollWheelZoom.enable());map.on('mouseout blur',()=>map.scrollWheelZoom.disable());
 const incidentLayer=L.layerGroup().addTo(map);
-let me=null,meMarker=null,meCircle=null,picking=false;
-const incidents=[]; // {lat,lon,marker,time,text,label,precise,inZone}
-
-function markerStyle(inc){return{radius:inc.precise?8:7,color:inc.inZone?'#ff4e5e':(inc.precise?'#ff864e':'#c9a24a'),weight:2,fillColor:inc.inZone?'#ff4e5e':(inc.precise?'#ff864e':'#c9a24a'),fillOpacity:inc.precise?.55:.25,dashArray:inc.precise?null:'3 3'}}
+let me=null,meAcc=0,meMarker=null,meCircle=null,accCircle=null;
+const incidents=[];
+const pinColor=inc=>inc.inZone?'#ff4e5e':inc.precise?'#ff864e':'#e3b34f';
+const markerStyle=inc=>({radius:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.precise?.55:.28,dashArray:inc.precise?null:'4 3'});
 function addIncident(entry,loc,g){
-  const inc={lat:g.lat,lon:g.lon,precise:g.precise,label:loc.label,place:g.name,time:entry.time,text:entry.text,kinds:entry.kinds,inZone:false};
+  const inc={lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,time:entry.time,text:entry.text,kinds:entry.kinds,inZone:false};
   inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());
   inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer)
-    .bindPopup(`<b>${esc(inc.label)}</b>${inc.kinds.length?' · '+esc(inc.kinds.join(', ')):''}<br><small>${fmtTime(inc.time)} · ${inc.precise?'mapped location':'approximate — street only'}</small><br>“${esc(inc.text)}”`);
-  if(!g.precise)inc.halo=L.circle([inc.lat,inc.lon],{radius:450,color:'#c9a24a',weight:1,opacity:.4,fillOpacity:.05,interactive:false}).addTo(incidentLayer);
+    .bindPopup(`<b>${esc(inc.label)}</b>${inc.kinds.length?' · '+esc(inc.kinds.join(', ')):''}<br><small>${fmtTime(inc.time)} · ${inc.precise?'mapped location':'approximate: street only'}</small><br>“${esc(inc.text)}”`);
   incidents.push(inc);
-  if(incidents.length>300){const old=incidents.shift();incidentLayer.removeLayer(old.marker);old.halo&&incidentLayer.removeLayer(old.halo)}
+  if(incidents.length>300){const old=incidents.shift();incidentLayer.removeLayer(old.marker)}
   return inc;
 }
-// fade older pins
-setInterval(()=>{const now=Date.now();for(const inc of incidents){const age=(now-inc.time)/36e5;inc.marker.setStyle({opacity:Math.max(.25,1-age*.5),fillOpacity:Math.max(.08,(inc.precise?.55:.25)*(1-age*.5))})}},60000);
+setInterval(()=>{const now=Date.now();for(const inc of incidents){const age=(now-inc.time)/36e5,o=Math.max(.25,1-age*.5);inc.marker.setStyle({opacity:o,fillOpacity:Math.max(.08,(inc.precise?.55:.28)*o)})}},60000);
+function fixMapSize(){setTimeout(()=>map.invalidateSize(),60)}
+$('mbFull').onclick=()=>{const f=$('mapwrap').classList.toggle('full');$('mbFull').classList.toggle('on',f);document.body.style.overflow=f?'hidden':'';fixMapSize()};
+$('mbMe').onclick=()=>{if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,padding:[30,30]});else{$('where').textContent='Set a location first.';$('geoBtn').scrollIntoView({behavior:'smooth',block:'center'})}};
+$('mbAll').onclick=()=>{const pts=incidents.map(i=>[i.lat,i.lon]);if(me)pts.push(me);if(pts.length>1)map.fitBounds(pts,{padding:[40,40],maxZoom:15});else if(pts.length)map.setView(pts[0],15);else map.setView([35.28,-120.66],10)};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('mapwrap').classList.contains('full'))$('mbFull').click()});
 
-/* ============================================================
-   WATCH ZONE
-   ============================================================ */
+/* ================================================================
+   LOCATION & WATCH ZONE
+   ================================================================ */
 const radiusM=()=>parseFloat($('radius').value)*MILE;
-let watchStreets=[]; // {name, base, auto}
+let watchStreets=[],removedAuto=new Set(store.get('watchRemoved',[]));
 function renderChips(){
   const c=$('chips');
-  if(!watchStreets.length){c.innerHTML='<span class="note">Set a location to watch nearby streets. Mentions of these trigger an alert even if the exact spot can\'t be mapped.</span>';$('watchN').textContent='';return}
-  c.innerHTML=watchStreets.map((w,i)=>`<span class="tag">${esc(w.name)}<i data-i="${i}" title="Remove">×</i></span>`).join('');
+  if(!watchStreets.length){c.innerHTML='<span class="note">Set your location and nearby streets appear here. A mention of any of them sets off an alert, even if the exact spot can\'t be mapped.</span>';$('watchN').textContent='';return}
+  c.innerHTML=watchStreets.map((w,i)=>`<span class="tag">${esc(w.name)}<button type="button" data-i="${i}" aria-label="Stop watching ${esc(w.name)}">×</button></span>`).join('');
   $('watchN').textContent=watchStreets.length;
-  store.set('watchCustom',watchStreets.filter(w=>!w.auto).map(w=>w.name));
-  store.set('watchRemoved',[...removedAuto]);
+  store.set('watchCustom',watchStreets.filter(w=>!w.auto).map(w=>w.name));store.set('watchRemoved',[...removedAuto]);
 }
-let removedAuto=new Set(store.get('watchRemoved',[]));
-$('chips').addEventListener('click',e=>{const i=e.target.dataset.i;if(i==null)return;const w=watchStreets[+i];if(w.auto)removedAuto.add(w.name);watchStreets.splice(+i,1);renderChips()});
-function addKeyword(name,auto=false){name=name.trim();if(!name)return;const base=baseOf(name)||name.toLowerCase();if(watchStreets.some(w=>w.base===base))return;watchStreets.push({name,base,auto});}
-$('kwAdd').onclick=()=>{addKeyword($('kwInput').value);$('kwInput').value='';renderChips()};
-$('kwInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('kwAdd').click()});
+$('chips').addEventListener('click',e=>{const i=e.target.dataset.i;if(i==null)return;const w=watchStreets[+i];if(w.auto)removedAuto.add(w.name);watchStreets.splice(+i,1);renderChips();rebuildPrompt()});
+function addKeyword(name,auto=false){name=name.trim();if(!name)return;const base=baseOf(name)||name.toLowerCase();if(watchStreets.some(w=>w.base===base))return;watchStreets.push({name,base,auto})}
+$('kwForm').onsubmit=e=>{e.preventDefault();addKeyword($('kwInput').value);$('kwInput').value='';renderChips();rebuildPrompt()};
 
-async function setLocation(lat,lon,how){
-  me=[lat,lon];store.set('myLoc',{lat,lon});
-  if(!meMarker){meMarker=L.marker(me,{icon:L.divIcon({className:'',html:'<div class="pulse"></div>',iconSize:[22,22],iconAnchor:[11,11]}),zIndexOffset:1000}).addTo(map);meCircle=L.circle(me,{radius:radiusM(),color:'#61dcff',weight:1.5,fillColor:'#61dcff',fillOpacity:.08}).addTo(map)}
-  else{meMarker.setLatLng(me);meCircle.setLatLng(me)}
-  meCircle.setRadius(radiusM());
-  map.fitBounds(meCircle.getBounds(),{maxZoom:15,padding:[30,30]});
-  $('where').textContent=`${how} · ${lat.toFixed(5)}, ${lon.toFixed(5)} — finding nearby streets…`;
-  recheckZone();
-  await refreshNearbyStreets();
+function setLocation(lat,lon,how,acc=0,quiet=false){
+  me=[lat,lon];meAcc=acc;store.set('myLoc',{lat,lon});
+  if(!meMarker){
+    meMarker=L.marker(me,{icon:L.divIcon({className:'',html:'<div class="pulse"></div>',iconSize:[24,24],iconAnchor:[12,12]}),zIndexOffset:1000,draggable:true}).addTo(map);
+    meMarker.on('dragend',()=>{const p=meMarker.getLatLng();setLocation(p.lat,p.lng,'Dragged pin')});
+    meCircle=L.circle(me,{radius:radiusM(),color:'#61dcff',weight:2,fillColor:'#61dcff',fillOpacity:.08,interactive:false}).addTo(map);
+    accCircle=L.circle(me,{radius:1,color:'#61dcff',weight:0,fillOpacity:.15,interactive:false}).addTo(map);
+  }
+  meMarker.setLatLng(me);meCircle.setLatLng(me);meCircle.setRadius(radiusM());accCircle.setLatLng(me);accCircle.setRadius(acc||1);
+  if(!quiet)map.fitBounds(meCircle.getBounds(),{maxZoom:16,padding:[30,30]});
+  recheckZone();refreshNearby(how);
 }
-async function refreshNearbyStreets(){
+function refreshNearby(how){
   if(!me)return;
-  const r=Math.min(radiusM(),1200);
-  try{
-    const data=await overpass(`[out:json][timeout:25];way["highway"]["name"]["highway"!~"footway|path|cycleway|service|track|steps"](around:${Math.round(r)},${me[0]},${me[1]});out tags;`);
-    const names=[...new Set((data.elements||[]).map(e=>e.tags.name).filter(n=>!/[()]/.test(n)))].sort();
+  const inCounty=me[0]>BBOX.s&&me[0]<BBOX.n&&me[1]>BBOX.w&&me[1]<BBOX.e;
+  let place='';
+  if(SD.ready){
+    const names=nearbyStreets(me[0],me[1],Math.min(radiusM(),1500));
     watchStreets=watchStreets.filter(w=>!w.auto);
-    names.filter(n=>!removedAuto.has(n)).slice(0,40).forEach(n=>addKeyword(n,true));
-    renderChips();
-    $('where').textContent=`${names.length?'Near '+names.slice(0,3).join(', '):'Location set'} · ${me[0].toFixed(4)}, ${me[1].toFixed(4)}`;
-  }catch(e){$('where').textContent=`Location set · ${me[0].toFixed(4)}, ${me[1].toFixed(4)} (couldn't load nearby streets — add them manually)`;renderChips()}
+    names.filter(n=>!removedAuto.has(n)).slice(0,25).forEach(n=>addKeyword(n,true));
+    renderChips();rebuildPrompt();
+    const close=nearbyStreets(me[0],me[1],250).slice(0,2);place=close.length?'Near '+close.join(' & '):'';
+  }
+  const w=$('where');w.classList.toggle('warn',!inCounty);
+  w.textContent=!inCounty?'This spot is outside San Luis Obispo County, so calls on this feed won\'t be near it.':`${place||'Location set'}${meAcc?` · accurate to ${Math.round(meAcc)} m`:''}${how?` · ${how}`:''}`;
 }
 function recheckZone(){for(const inc of incidents){inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());inc.marker.setStyle(markerStyle(inc))}}
-$('geoBtn').onclick=()=>{
-  if(!navigator.geolocation){$('where').textContent='Geolocation is not available in this browser — use SELECT ON MAP.';return}
-  $('where').textContent='Requesting your location…';
-  navigator.geolocation.getCurrentPosition(p=>setLocation(p.coords.latitude,p.coords.longitude,'GPS'),err=>{$('where').textContent='Location denied or unavailable — use SELECT ON MAP instead.'},{enableHighAccuracy:true,timeout:15000});
-};
-$('pickBtn').onclick=()=>{picking=!picking;$('pickBtn').classList.toggle('on',picking);$('map').classList.toggle('picking',picking);$('mapHint').textContent=picking?'Click anywhere on the map to set your watch location.':'Pinned locations heard on the scanner. Click a pin for the transcript.';if(picking)$('map').scrollIntoView({behavior:'smooth',block:'center'})};
-map.on('click',e=>{if(!picking)return;picking=false;$('pickBtn').classList.remove('on');$('map').classList.remove('picking');$('mapHint').textContent='Pinned locations heard on the scanner. Click a pin for the transcript.';setLocation(e.latlng.lat,e.latlng.lng,'Map pick')});
-let radiusTimer;
-$('radius').oninput=()=>{const v=parseFloat($('radius').value);$('radiusLbl').textContent=v+' mi';store.set('radius',v);if(meCircle)meCircle.setRadius(radiusM());recheckZone();clearTimeout(radiusTimer);radiusTimer=setTimeout(refreshNearbyStreets,900)};
 
-/* ============================================================
+// GPS: take the first fix immediately, then keep refining for a few seconds.
+function geoError(err){
+  const ios=/iPhone|iPad/.test(navigator.userAgent);
+  $('where').classList.add('warn');
+  $('where').textContent=err&&err.code===1
+    ?(ios?'Location is blocked. Open Settings → Privacy & Security → Location Services → Safari Websites, choose "While Using", then try again. Or type an address above.':'Location is blocked for this site. Allow it in your browser\'s site settings, or type an address above.')
+    :'Couldn\'t get a GPS fix. Try again (near a window helps), or type an address above.';
+}
+$('geoBtn').onclick=()=>{
+  if(!navigator.geolocation){$('where').textContent='This browser can\'t share location. Type an address or pick on the map.';return}
+  if(!window.isSecureContext){$('where').textContent='Location only works on the https:// address of this page.';return}
+  $('where').classList.remove('warn');$('where').textContent='Finding you…';$('geoBtn').disabled=true;
+  let best=null,done=false;const t0=Date.now();
+  const finish=()=>{if(done)return;done=true;navigator.geolocation.clearWatch(id);$('geoBtn').disabled=false};
+  const id=navigator.geolocation.watchPosition(p=>{
+    const first=!best;if(first||p.coords.accuracy<best.coords.accuracy){best=p;setLocation(p.coords.latitude,p.coords.longitude,'GPS',p.coords.accuracy,!first)}
+    if(p.coords.accuracy<=20||Date.now()-t0>9000)finish();
+  },err=>{finish();if(!best)geoError(err)},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+  setTimeout(()=>{finish();if(!best)geoError({code:3})},16000);
+};
+let followId=null;
+$('follow').onchange=()=>{
+  if($('follow').checked){if(!navigator.geolocation){$('follow').checked=false;return}
+    followId=navigator.geolocation.watchPosition(p=>{const moved=!me||dist(me,[p.coords.latitude,p.coords.longitude])>25;if(moved)setLocation(p.coords.latitude,p.coords.longitude,'Following',p.coords.accuracy,true)},err=>{$('follow').checked=false;geoError(err)},{enableHighAccuracy:true,maximumAge:10000});
+  }else if(followId!=null){navigator.geolocation.clearWatch(followId);followId=null}
+};
+// Address / place search
+$('searchForm').onsubmit=async e=>{
+  e.preventDefault();const q=$('searchInput').value.trim();if(!q)return;const box=$('results');box.innerHTML='<div class="note">Searching…</div>';
+  const items=[];
+  const x=extract(q);if(SD.ready&&x.locs[0]&&x.locs[0].type==='cross'){const g=crossLocal(x.locs[0].a,x.locs[0].b,x.town);if(g)items.push({label:x.locs[0].label+(x.town?', '+townName(x.town):''),lat:g.lat,lon:g.lon})}
+  try{const r=await nominatim('search',searchParams({q}));for(const h of r)items.push({label:h.display_name.split(',').slice(0,3).join(','),lat:+h.lat,lon:+h.lon})}catch{}
+  if(!items.length){box.innerHTML='<div class="note">No match in San Luis Obispo County. Try adding the town, like "1200 Higuera, San Luis Obispo".</div>';return}
+  box.innerHTML='';
+  items.slice(0,5).forEach(it=>{const b=document.createElement('button');b.type='button';b.textContent='📍 '+it.label;b.onclick=()=>{box.innerHTML='';$('searchInput').value='';$('follow').checked=false;$('follow').onchange();setLocation(it.lat,it.lon,'Address')};box.appendChild(b)});
+  if(items.length===1)box.firstChild.click();
+};
+// Pick on map with a center crosshair (easier than tapping exactly on phones)
+function setPicking(on){$('mapwrap').classList.toggle('picking',on);$('pickBtn').classList.toggle('on',on);if(on){$('mapwrap').scrollIntoView({behavior:'smooth',block:'center'});if(me)map.setView(me,Math.max(map.getZoom(),15))}}
+$('pickBtn').onclick=()=>setPicking(!$('mapwrap').classList.contains('picking'));
+$('pickCancel').onclick=()=>setPicking(false);
+$('pickSet').onclick=()=>{const c=map.getCenter();setPicking(false);$('follow').checked=false;$('follow').onchange();setLocation(c.lat,c.lng,'Picked on map')};
+map.on('click',e=>{if($('mapwrap').classList.contains('picking'))map.panTo(e.latlng)});
+
+// Radius: quick chips plus a fine slider
+function setRadius(v,save=true){
+  v=Math.max(0.1,Math.min(5,+v));$('radius').value=v;$('radiusLbl').textContent=fmtRadius(v);
+  document.querySelectorAll('#radiusSeg button').forEach(b=>b.classList.toggle('on',Math.abs(+b.dataset.r-v)<0.001));
+  if(meCircle)meCircle.setRadius(radiusM());recheckZone();if(save)store.set('radius',v);
+}
+$('radiusSeg').onclick=e=>{const r=e.target.dataset.r;if(!r)return;setRadius(r);if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,padding:[30,30]});clearTimeout(rT);rT=setTimeout(()=>refreshNearby(),200)};
+let rT;$('radius').oninput=()=>{setRadius($('radius').value);clearTimeout(rT);rT=setTimeout(()=>{refreshNearby();if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,padding:[30,30]})},500)};
+
+/* ================================================================
    ALERTS
-   ============================================================ */
-let alertsOn=store.get('alertsOn',false),swReg=null;
+   ================================================================ */
+let alertsOn=store.get('alertsOn',false),swReg=null,actx=null;
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').then(r=>swReg=r).catch(()=>{});
+function getCtx(){if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C()}return actx}
 function paintAlertsBtn(){$('alertsBtn').textContent=alertsOn?'ALERTS ON':'ENABLE ALERTS';$('alertsBtn').classList.toggle('on',alertsOn)}
 $('alertsBtn').onclick=async()=>{
+  getCtx()&&actx.resume();
   if(!alertsOn&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}
-  if(!alertsOn&&!('Notification'in window)&&IS_PHONE)showErr('On iPhone, pop-up notifications need this site added to your Home Screen (Share → Add to Home Screen). On-page alerts and sounds still work.');
+  if(!alertsOn&&!('Notification'in window)&&IS_PHONE)showErr('On iPhone, pop-up notifications need this site on your Home Screen (Share → Add to Home Screen). Sounds and on-page alerts still work.');
   alertsOn=!alertsOn;store.set('alertsOn',alertsOn);paintAlertsBtn();if(alertsOn)beep(1);
 };
+function beep(n=3){try{const c=getCtx();if(!c)return;const t=c.currentTime;for(let i=0;i<n;i++){const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=i%2?660:880;g.gain.setValueAtTime(0,t+i*.22);g.gain.linearRampToValueAtTime(.12,t+i*.22+.01);g.gain.linearRampToValueAtTime(0,t+i*.22+.18);o.connect(g).connect(c.destination);o.start(t+i*.22);o.stop(t+i*.22+.2)}}catch{}}
 let toastTimer;
-function beep(n=3){try{const c=getCtx();const t=c.currentTime;for(let i=0;i<n;i++){const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=i%2?660:880;g.gain.setValueAtTime(0,t+i*.22);g.gain.linearRampToValueAtTime(.12,t+i*.22+.01);g.gain.linearRampToValueAtTime(0,t+i*.22+.18);o.connect(g).connect(c.destination);o.start(t+i*.22);o.stop(t+i*.22+.2)}}catch{}}
 function raiseAlert(title,body,latlon){
   $('toast').querySelector('b').textContent='⚠ '+title;$('toastText').textContent=body;$('toast').classList.add('show');
-  $('toast').onclick=()=>{$('toast').classList.remove('show');if(latlon){map.setView(latlon,16);$('map').scrollIntoView({behavior:'smooth',block:'center'})}};
+  $('toast').onclick=()=>{$('toast').classList.remove('show');if(latlon){map.setView(latlon,16);$('mapwrap').scrollIntoView({behavior:'smooth',block:'center'})}};
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),15000);
-  if(!alertsOn)return;
-  beep(4);navigator.vibrate&&navigator.vibrate([200,100,200]);
-  if('Notification'in window&&Notification.permission==='granted'){
-    const opts={body,tag:'slo-dispatch',renotify:true,icon:'icon-192.png'};
-    (swReg?swReg.showNotification(title,opts):Promise.reject()).catch(()=>{try{new Notification(title,opts)}catch{}});
-  }
+  if(!alertsOn)return;beep(4);navigator.vibrate&&navigator.vibrate([200,100,200]);
+  if('Notification'in window&&Notification.permission==='granted'){const opts={body,tag:'slo-dispatch',renotify:true,icon:'icon-192.png'};(swReg?swReg.showNotification(title,opts):Promise.reject()).catch(()=>{try{new Notification(title,opts)}catch{}})}
 }
 
-/* ============================================================
-   TRANSCRIPT PIPELINE
-   ============================================================ */
+/* ================================================================
+   TRANSCRIPT
+   ================================================================ */
 const lines=[];let lastTown=null,lastTownAt=0;
-function highlight(text,words,watchHits){
-  let html=esc(text);
-  const mark=(w,cls)=>{if(!w||w.length<3)return;const re=new RegExp(`\\b(${reEsc(esc(w))})\\b`,'ig');html=html.replace(re,`<mark${cls?` class="${cls}"`:''}>$1</mark>`)};
-  watchHits.forEach(w=>mark(w,'w'));
-  words.forEach(w=>{if(!/^\d+$/.test(w)||w.length>=3)mark(w)});
-  return html;
-}
 function watchMatches(text){
-  const tok=tokenize(text),s=' '+tok.join(' ')+' ';const hits=[];
+  const s=' '+tokenize(text).join(' ')+' ',hits=[];
   for(const w of watchStreets){
-    if(s.includes(' '+w.base+' ')){if(!COMMON.has(w.base)||s.includes(' '+w.base+' '+(w.name.split(' ').pop()||'').toLowerCase())||w.base.includes(' '))hits.push(w)}
-  }
+    if(!w.auto){if(s.includes(' '+w.base+' '))hits.push(w);continue} // keywords you typed match anywhere
+    const re=new RegExp('(^| )(\\d{2,5}|on|at|near|off|of|and|from|to|toward)( [nsew]| north| south| east| west)? '+reEsc(w.base)+' ( ?(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|court|ct|place|pl|boulevard|blvd|circle|parkway|highway))?');
+    const suf=new RegExp(' '+reEsc(w.base)+' (street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|court|ct|place|pl|boulevard|blvd|circle|parkway|highway) ');
+    if(suf.test(s)||(re.test(s)&&!COMMON.has(w.base)))hits.push(w)}
   return hits;
 }
-async function handleTranscript(text,when=new Date()){
-  text=text.replace(/\s+/g,' ').trim();if(!text)return;
+function renderText(entry){
+  const fixed=new Map(entry.fixes.map(f=>[f.to.toLowerCase(),f.from]));
+  const locWords=new Set(entry.locs.flatMap(l=>l.words).filter(w=>!/^\d{1,2}$/.test(w)));
+  const watchW=new Set(entry.hits.flatMap(h=>h.base.split(' ')));
+  let html=entry.text.split(/(\s+)/).map(p=>{
+    if(!p.trim())return p;const c=coreOf(p);let h=esc(p);
+    if(watchW.has(c))h=`<mark class="w">${h}</mark>`;else if(locWords.has(c))h=`<mark>${h}</mark>`;
+    if(entry.unc&&entry.unc.has(c))h=`<span class="unc" title="Unclear: the two hearings disagreed here">${h}</span>`;
+    return h;
+  }).join('');
+  for(const[to,from]of fixed){const re=new RegExp(`\\b(${reEsc(esc(to))})\\b`,'i');html=html.replace(re,`<span class="fix" title="Heard as “${esc(from)}”">$1</span>`)}
+  return html;
+}
+function drawLine(entry){
+  const el=entry.el;
+  el.className='line'+(entry.final?'':' pending')+(entry.alert?' alert':entry.results.length?' located':'');
+  const tags=entry.final?[
+    ...entry.kinds.map(k=>`<span class="tag">${k}</span>`),
+    ...(entry.zone?['<span class="tag al">IN YOUR ZONE</span>']:[]),
+    ...entry.hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
+    ...entry.results.map((r,i)=>`<span class="tag loc" data-r="${i}" role="button" tabindex="0">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}</span>`),
+    ...(entry.locating?[`<span class="tag pend">locating ${esc(entry.locs[0].label)}…</span>`]:[]),
+    ...(!entry.locating&&entry.locs.length&&!entry.results.length?[`<span class="tag pend">couldn't map ${esc(entry.locs[0].label)}</span>`]:[]),
+    ...(entry.check?[`<span class="tag ok" title="${esc(entry.checkNote||'')}">${entry.check}</span>`]:[])
+  ]:['<span class="tag pend">double-checking…</span>'];
+  el.innerHTML=`<div class="t">${fmtTime(entry.time)}</div><div class="x">${entry.final?renderText(entry):esc(entry.text)}<div class="tags">${tags.join('')}</div></div>`;
+}
+function newLine(text,time){
   $('emptyMsg')&&$('emptyMsg').remove();
-  const {locs,town}=extract(text);
+  const entry={time,text,kinds:[],locs:[],results:[],hits:[],fixes:[],unc:null,final:false,el:document.createElement('div')};
+  lines.push(entry);
+  entry.el.addEventListener('click',e=>{const i=e.target.dataset.r;if(i==null)return;const r=entry.results[+i];map.setView([r.lat,r.lon],16);r.inc.marker.openPopup();$('mapwrap').scrollIntoView({behavior:'smooth',block:'center'})});
+  drawLine(entry);
+  const box=$('transcript'),atTop=box.scrollTop<40;box.prepend(entry.el);if(atTop)box.scrollTop=0;
+  while(box.children.length>400)box.lastChild.remove();
+  $('tCount').textContent='· '+lines.length;$('heard')&&($('heard').textContent=lines.length);
+  return entry;
+}
+async function finalizeLine(entry,merged,info={}){
+  const snapped=snapNames(merged.text);
+  Object.assign(entry,{text:snapped.text,fixes:snapped.fixes,unc:merged.unc,primed:info.primed,plain:info.plain});
+  entry.check=info.typed?'TEST':info.single?'1 HEARING':merged.agree?'✓ HEARINGS AGREE':'✓ DOUBLE-CHECKED';
+  entry.checkNote=info.single?'Heard once (calls were piling up)':merged.agree?'Both hearings matched':'The two hearings differed; the more consistent one was kept';
+  const reviewed=await claudeReview(Object.assign(entry,{locs:extract(snapped.text).locs}));
+  if(reviewed&&reviewed!==entry.text){const s2=snapNames(reviewed);entry.fixes=entry.fixes.concat(s2.fixes);entry.text=s2.text;entry.unc=new Set()}
+  if(reviewed){entry.check='✓ CLAUDE CHECKED';entry.checkNote='Reviewed by Claude using both hearings'}
+  const {locs,town}=extract(entry.text);
   if(town){lastTown=town;lastTownAt=Date.now()}
   const ctxTown=town||(Date.now()-lastTownAt<5*60e3?lastTown:null);
-  const kinds=kindsOf(text);
-  const hits=watchMatches(text);
-  const entry={time:when,text,kinds,locs,town:ctxTown,results:[],alert:false};lines.push(entry);
-  const el=document.createElement('div');el.className='line';
-  const words=locs.flatMap(l=>l.words);
-  const render=()=>{
-    el.className='line'+(entry.alert?' alert':entry.results.length?' located':'');
-    const tags=[...kinds.map(k=>`<span class="tag kind">${k}</span>`),
-      ...(entry.alert?[`<span class="tag al">IN YOUR ZONE</span>`]:[]),
-      ...hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
-      ...entry.results.map((r,i)=>`<span class="tag loc" data-r="${i}">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}</span>`),
-      ...(entry.pending?[`<span class="tag pend">locating ${esc(locs[0].label)}…</span>`]:[]),
-      ...(!entry.pending&&locs.length&&!entry.results.length?[`<span class="tag pend">couldn't map ${esc(locs[0].label)}</span>`]:[])];
-    el.innerHTML=`<div class="t">${fmtTime(when)}</div><div class="x">${highlight(text,words,hits.map(h=>h.base))}${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`;
-  };
-  el.addEventListener('click',e=>{const i=e.target.dataset.r;if(i==null)return;const r=entry.results[+i];map.setView([r.lat,r.lon],16);r.inc.marker.openPopup();$('map').scrollIntoView({behavior:'smooth',block:'center'})});
-  entry.pending=locs.length>0;render();
-  const box=$('transcript');const atTop=box.scrollTop<40;box.prepend(el);if(atTop)box.scrollTop=0;
-  while(box.children.length>400)box.lastChild.remove();
-  $('tCount').textContent=`· ${lines.length}`;
-
-  if(hits.length){entry.alert=true;render();raiseAlert('WATCHED STREET MENTIONED',`${hits.map(h=>h.name).join(', ')} — “${text}”`,null)}
+  Object.assign(entry,{locs,kinds:kindsOf(entry.text),hits:watchMatches(entry.text),final:true,locating:locs.length>0});
+  drawLine(entry);
+  if(entry.hits.length){entry.alert=true;drawLine(entry);raiseAlert('WATCHED STREET MENTIONED',`${entry.hits.map(h=>h.name).join(', ')}: “${entry.text}”`,null)}
   for(const loc of locs.slice(0,2)){
-    const g=await geocode(loc,ctxTown);
-    if(g){
-      const inc=addIncident(entry,loc,g);entry.results.push({...g,label:loc.label,inc});
-      if(inc.inZone&&!entry.zoneAlerted){entry.zoneAlerted=entry.alert=true;const d=dist(me,[g.lat,g.lon]);raiseAlert('POLICE ACTIVITY NEAR YOU',`${loc.label} (${(d/MILE).toFixed(2)} mi away)${kinds.length?' · '+kinds.join(', '):''} — “${text}”`,[g.lat,g.lon])}
-      if(entry.results.length===1&&!me)map.panTo([g.lat,g.lon],{animate:true});
-      break; // one pin per transmission is enough
-    }
+    const g=await geocode(loc,ctxTown);if(!g)continue;
+    const inc=addIncident(entry,loc,g);entry.results.push({...g,label:g.label||loc.label,inc});
+    if(inc.inZone){entry.zone=entry.alert=true;raiseAlert('POLICE ACTIVITY NEAR YOU',`${inc.label} (${(dist(me,[g.lat,g.lon])/MILE).toFixed(2)} mi away)${entry.kinds.length?' · '+entry.kinds.join(', '):''}: “${entry.text}”`,[g.lat,g.lon])}
+    if(!me)map.panTo([g.lat,g.lon]);
+    break;
   }
-  entry.pending=false;render();
+  entry.locating=false;drawLine(entry);
 }
-$('testBtn').onclick=()=>{const v=$('testInput').value.trim();if(v){handleTranscript(v);$('testInput').value=''}};
-$('testInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('testBtn').click()});
+async function handleTyped(text){const e=newLine(text,new Date());await finalizeLine(e,{text,unc:new Set(),agree:true},{typed:true})}
+$('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim();if(v){handleTyped(v);$('testInput').value=''}};
 $('clearBtn').onclick=()=>{lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0};
 $('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
 
-/* ============================================================
-   SPEECH RECOGNITION (Whisper, in a Web Worker, fully in-browser)
-   ============================================================ */
+/* ================================================================
+   SPEECH RECOGNITION (Whisper on this device, in a background worker)
+   ================================================================ */
 const WORKER_SRC=`
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+import { AutoProcessor, AutoTokenizer, WhisperForConditionalGeneration, env } from '${TRANSFORMERS}';
 env.allowLocalModels = false;
-let asr = null;
+let proc, tok, model, ids;
 async function hasWebGPU(){ try{ return !!(navigator.gpu && await navigator.gpu.requestAdapter()); }catch{ return false; } }
-async function load(model, device){
+async function run(audio, prompt){
+  const inputs = await proc(audio);
+  let init = [ids.sot, ids.nots];
+  if (prompt) init = [ids.prev, ...tok.encode(' ' + prompt, { add_special_tokens:false }).slice(-150), ...init];
+  const out = await model.generate({ ...inputs, decoder_input_ids: init, max_new_tokens: 120 });
+  const seq = Array.from(out.tolist()[0], Number).slice(init.length);
+  return tok.decode(seq, { skip_special_tokens: true }).trim();
+}
+async function load(id, device){
   const progress_callback = p => postMessage({ type:'progress', p });
+  [proc, tok] = await Promise.all([AutoProcessor.from_pretrained(id, { progress_callback }), AutoTokenizer.from_pretrained(id, { progress_callback })]);
+  const t = s => tok.model.tokens_to_ids.get(s);
+  ids = { sot:t('<|startoftranscript|>'), nots:t('<|notimestamps|>'), prev:t('<|startofprev|>') };
   if (device !== 'wasm' && await hasWebGPU()) {
     postMessage({ type:'stage', stage:'gpu' });
-    try { asr = await pipeline('automatic-speech-recognition', model, { device:'webgpu', dtype:{ encoder_model:'fp32', decoder_model_merged:'q4' }, progress_callback });
-          postMessage({ type:'ready', device:'GPU' }); return; } catch(e){ console.warn('webgpu failed, using wasm', e); }
+    try { model = await WhisperForConditionalGeneration.from_pretrained(id, { device:'webgpu', dtype:{ encoder_model:'fp32', decoder_model_merged:'q4' }, progress_callback });
+          await run(new Float32Array(16000), null); postMessage({ type:'ready', device:'GPU' }); return; }
+    catch (e) { console.warn('WebGPU failed, using CPU', e); }
   }
-  asr = await pipeline('automatic-speech-recognition', model, { device:'wasm', dtype:'q8', progress_callback });
+  model = await WhisperForConditionalGeneration.from_pretrained(id, { device:'wasm', dtype:'q8', progress_callback });
+  await run(new Float32Array(16000), null);
   postMessage({ type:'ready', device:'CPU' });
 }
 onmessage = async ({ data }) => {
   try {
     if (data.type === 'load') await load(data.model, data.device);
-    else if (data.type === 'run') {
-      const out = await asr(data.audio, { chunk_length_s: 30 });
-      postMessage({ type:'text', id:data.id, text: out.text, t: data.t });
-    }
+    else if (data.type === 'run') postMessage({ type:'text', id:data.id, text: await run(data.audio, data.prompt) });
   } catch (e) { postMessage({ type:'error', id:data.id, error: String(e && e.message || e) }); }
 };`;
-let worker=null,modelReady=false,busy=false,queue=[],modelId=store.get('model',IS_PHONE?'onnx-community/whisper-tiny.en':$('model').value);
+let worker=null,modelReady=false,modelId=store.get('model2',IS_PHONE?'onnx-community/whisper-tiny.en':'onnx-community/whisper-base.en');
 $('model').value=modelId;
-const files={};
+const files={},pending=new Map();let reqId=0,loadTimer,watchdog,gpuTried=false;
 function aiStatus(t){$('aiStatus').textContent=t}
 function startWorker(){
-  if(worker)worker.terminate();modelReady=false;busy=false;queue=[];
+  if(worker)worker.terminate();modelReady=false;for(const p of pending.values())p.rej(new Error('restarted'));pending.clear();
   worker=new Worker(URL.createObjectURL(new Blob([WORKER_SRC],{type:'text/javascript'})),{type:'module'});
   worker.onmessage=({data})=>{
-    if(data.type==='progress'){const p=data.p;if(p.status==='progress'&&p.total){files[p.file]=[p.loaded,p.total];const L=Object.values(files).reduce((s,f)=>s+f[0],0),T=Object.values(files).reduce((s,f)=>s+f[1],0);aiStatus(L>=T?'STARTING MODEL…':`LOADING MODEL ${Math.round(L/T*100)}%`)}}
-    else if(data.type==='stage'){gpuTried=true}
-    else if(data.type==='ready'){clearTimeout(loadTimer);modelReady=true;aiStatus(`AI READY · ${data.device}`);pump()}
-    else if(data.type==='text'){busy=false;const t=cleanText(data.text);if(t)handleTranscript(t,new Date(data.t));pump()}
-    else if(data.type==='error'){busy=false;console.warn(data.error);if(!modelReady){aiStatus('AI FAILED TO LOAD');showErr('The speech model could not start ('+data.error+'). Try the Tiny model in Settings.')}pump()}
+    if(data.type==='progress'){const p=data.p;if(p.status==='progress'&&p.total){files[p.file]=[p.loaded,p.total];const L=Object.values(files).reduce((s,f)=>s+f[0],0),T=Object.values(files).reduce((s,f)=>s+f[1],0);aiStatus(L>=T?'STARTING…':`DOWNLOADING ${Math.round(L/T*100)}%`)}}
+    else if(data.type==='stage')gpuTried=true;
+    else if(data.type==='ready'){clearTimeout(loadTimer);clearTimeout(watchdog);modelReady=true;aiStatus('READY · '+data.device);pump()}
+    else if(data.type==='text'||data.type==='error'){const p=pending.get(data.id);if(p){pending.delete(data.id);data.type==='text'?p.res(data.text):p.rej(new Error(data.error))}
+      else if(data.type==='error'&&!modelReady){aiStatus('FAILED');showErr('The speech model could not start ('+data.error+'). Try the Tiny model in Settings.')}}
   };
-  worker.onerror=e=>{console.error(e);aiStatus('AI UNAVAILABLE')};
-  aiStatus('LOADING MODEL…');armWatchdog();
-  const device=store.get('forceCPU',false)?'wasm':'auto';
-  worker.postMessage({type:'load',model:modelId,device});
-  // Some phones/browsers report a GPU but never finish starting the model on it. Fall back to CPU.
-  clearTimeout(loadTimer);
+  worker.onerror=e=>{aiStatus('FAILED');showErr('The speech model could not start on this browser. Live audio still plays.')};
+  aiStatus('LOADING…');
+  const device=store.get('forceCPU',false)?'wasm':'auto';worker.postMessage({type:'load',model:modelId,device});
+  clearTimeout(loadTimer);clearTimeout(watchdog);
   if(device!=='wasm')loadTimer=setTimeout(()=>{if(!modelReady&&gpuTried){store.set('forceCPU',true);aiStatus('GPU STALLED · USING CPU');startWorker()}},90000);
+  watchdog=setTimeout(()=>{if(!modelReady)showErr('The speech model is taking a long time to start on this device. Live audio still plays. Try the Tiny model in Settings.')},240000);
 }
-let loadTimer,gpuTried=false,watchdog;
-function armWatchdog(){clearTimeout(watchdog);watchdog=setTimeout(()=>{if(!modelReady)showErr('The speech model is taking a long time to start on this device. Live audio still plays. Try the Tiny model in Settings, or use Chrome or Safari on a computer for transcription.')},240000)}
-$('model').onchange=()=>{modelId=$('model').value;store.set('model',modelId);if(worker)startWorker()};
-function pump(){
-  if(!modelReady||busy||!queue.length){if(modelReady&&!busy)aiStatus(aiStatusIdle());return}
-  if(queue.length>6)queue.splice(0,queue.length-6); // fall behind gracefully
-  const seg=queue.shift();busy=true;aiStatus(`TRANSCRIBING${queue.length?` · ${queue.length} QUEUED`:''}`);
-  worker.postMessage({type:'run',audio:seg.audio,t:seg.t,id:seg.t},[seg.audio.buffer]);
+$('model').onchange=()=>{modelId=$('model').value;store.set('model2',modelId);if(worker)startWorker()};
+function asr(audio,prompt){return new Promise((res,rej)=>{const id=++reqId;pending.set(id,{res,rej});worker.postMessage({type:'run',id,audio,prompt},[audio.buffer])})}
+let currentPrompt='';
+function rebuildPrompt(){
+  const near=watchStreets.slice(0,10).map(w=>displayBase(w.base)||w.name);
+  const streets=[...new Set([...near,...PROMPT_STREETS])].slice(0,22).join(', ');
+  currentPrompt=`${PROMPT_BASE} ${PROMPT_TOWNS} ${streets}.`;
+  PROMPT_WORDS=new Set(wordsOf(currentPrompt).filter(w=>!COMMON_EN.has(w)&&w.length>2));
 }
-const aiStatusIdle=()=>`AI LISTENING`;
-const HALLUCINATIONS=/^(thank you|thanks for watching|you|bye|okay|uh|um|so|\.+|thank you for watching|please subscribe)[.!?\s]*$/i;
-function cleanText(t){
-  t=(t||'').replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g,' ').replace(/♪/g,'').replace(/\s+/g,' ').trim();
-  if(!t||HALLUCINATIONS.test(t)||/subscribe|thanks for watching/i.test(t))return'';
-  const w=t.toLowerCase().split(' ');if(w.length>6&&new Set(w).size/w.length<.25)return''; // repetition loop
-  return t;
-}
-
-/* ============================================================
-   AUDIO: HLS playback + capture + voice-activity segmentation
-   ============================================================ */
-const audio=new Audio();audio.crossOrigin='anonymous';audio.preload='none';
-let hls,actx,gain,captured=false;
-function getCtx(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();return actx}
-function state(text,live=false){$('status').textContent=text;$('beacon').classList.toggle('live',live)}
-$('volume').oninput=()=>{if(gain)gain.gain.value=parseFloat($('volume').value);store.set('vol',$('volume').value)};
-
-const WORKLET=`class Tap extends AudioWorkletProcessor{constructor(){super();this.buf=new Float32Array(2048);this.n=0}
-process(inputs){const ch=inputs[0];if(ch&&ch[0]){const a=ch[0],b=ch[1];for(let i=0;i<a.length;i++){this.buf[this.n++]=b?(a[i]+b[i])*.5:a[i];if(this.n===this.buf.length){this.port.postMessage(this.buf.slice());this.n=0}}}return true}}
-registerProcessor('tap',Tap);`;
-
-async function setupCapture(){
-  if(captured)return;const c=getCtx();
-  const src=c.createMediaElementSource(audio);
-  gain=c.createGain();gain.gain.value=parseFloat($('volume').value);src.connect(gain).connect(c.destination);
-  await c.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET],{type:'text/javascript'})));
-  const tap=new AudioWorkletNode(c,'tap',{numberOfOutputs:1});
-  const sink=c.createGain();sink.gain.value=0;src.connect(tap).connect(sink).connect(c.destination);
-  tap.port.onmessage=e=>vad(e.data,c.sampleRate);
-  captured=true;
+rebuildPrompt();
+const queue=[];let pumping=false;
+async function pump(){
+  if(pumping||!modelReady)return;pumping=true;
+  while(queue.length){
+    if(queue.length>6)queue.splice(0,queue.length-6);
+    const seg=queue.shift();
+    const two=$('optDouble').checked&&queue.length<2;
+    aiStatus(two?'HEARING (1 OF 2)':'HEARING');
+    try{
+      const primed=cleanText(await asr(seg.audio.slice(),currentPrompt));
+      let entry=null;
+      if(primed&&!promptEcho(primed))entry=newLine(primed,new Date(seg.t));
+      let plain=null;
+      if(two){aiStatus('HEARING (2 OF 2)');plain=cleanText(await asr(seg.audio.slice(),null))}
+      const merged=two?reconcile(primed,plain):reconcile(primed,null);
+      if(!merged){if(entry){entry.el.remove();lines.splice(lines.indexOf(entry),1);$('tCount').textContent=lines.length?'· '+lines.length:''}continue}
+      if(!entry)entry=newLine(merged.text,new Date(seg.t));
+      await finalizeLine(entry,merged,{primed,plain,single:!two});
+    }catch(e){console.warn(e)}
+  }
+  pumping=false;aiStatus(modelReady?'LISTENING':'IDLE');
 }
 
-// Energy-based voice activity detection tuned for scanner traffic (bursts separated by silence).
-let floor=0.004,inSpeech=false,segBufs=[],segLen=0,silentFor=0,voicedFor=0,preroll=[];
-function sensFactor(){const s=+$('sens').value;return 4.2-s*0.32} // higher sensitivity -> lower threshold multiple
+/* ================================================================
+   AUDIO IN: read the stream's segments directly and decode them
+   (works whether or not the sound is playing, on every browser)
+   ================================================================ */
+function demuxTS(u8){
+  let pmt=-1,apid=-1,kind=0;const chunks=[];let total=0;
+  for(let o=0;o+188<=u8.length;o+=188){
+    if(u8[o]!==0x47){const n=u8.indexOf(0x47,o+1);if(n<0)break;o=n-188;continue}
+    const pusi=(u8[o+1]&0x40)!==0,pid=((u8[o+1]&0x1f)<<8)|u8[o+2],afc=(u8[o+3]>>4)&3;let p=o+4;
+    if(afc===2)continue;if(afc===3)p+=1+u8[p];if(p>=o+188)continue;
+    if(pid===0){if(pusi)p+=1+u8[p];pmt=((u8[p+10]&0x1f)<<8)|u8[p+11];continue}
+    if(pid===pmt){if(pusi)p+=1+u8[p];const end=p+3+(((u8[p+1]&0x0f)<<8)|u8[p+2])-4;let q=p+12+(((u8[p+10]&0x0f)<<8)|u8[p+11]);
+      while(q<end){const st=u8[q],ep=((u8[q+1]&0x1f)<<8)|u8[q+2],il=((u8[q+3]&0x0f)<<8)|u8[q+4];if(apid<0&&(st===0x0f||st===0x03||st===0x04)){apid=ep;kind=st}q+=5+il}continue}
+    if(pid!==apid)continue;
+    if(pusi){if(u8[p]!==0||u8[p+1]!==0||u8[p+2]!==1)continue;p+=9+u8[p+8]}
+    const c=u8.subarray(p,o+188);chunks.push(c);total+=c.length;
+  }
+  const out=new Uint8Array(total);let k=0;for(const c of chunks){out.set(c,k);k+=c.length}
+  return{data:out,aac:kind===0x0f};
+}
+const ADTS_RATES=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+function adtsFrames(u8){const f=[];let i=0,rate=22050;while(i+7<u8.length){if(u8[i]!==0xff||(u8[i+1]&0xf0)!==0xf0){i++;continue}const len=((u8[i+3]&3)<<11)|(u8[i+4]<<3)|(u8[i+5]>>5);if(len<7)break;rate=ADTS_RATES[(u8[i+2]>>2)&15]||rate;f.push(u8.subarray(i,i+len));i+=len}return{frames:f,rate}}
+function concat(arrs){const n=arrs.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n);let k=0;for(const a of arrs){o.set(a,k);k+=a.length}return o}
+async function decodeTo16k(bytes){
+  const oc=new OfflineAudioContext(1,1,16000);
+  const buf=await oc.decodeAudioData(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+  // radio cleanup: cut rumble and hiss outside the voice band
+  const r=new OfflineAudioContext(1,buf.length,16000),s=r.createBufferSource(),hp=r.createBiquadFilter(),lp=r.createBiquadFilter();
+  s.buffer=buf;hp.type='highpass';hp.frequency.value=220;lp.type='lowpass';lp.frequency.value=3600;s.connect(hp).connect(lp).connect(r.destination);s.start();
+  return(await r.startRendering()).getChannelData(0);
+}
+const SEG={running:false,seq:-1,carry:null,fails:0,ok:0};
+async function segmentLoop(){
+  const base=STREAM.slice(0,STREAM.lastIndexOf('/')+1);
+  while(SEG.running){
+    let wait=4000;
+    try{
+      const pl=await (await fetch(STREAM,{cache:'no-store',signal:timeoutSignal(10000)})).text();
+      const ms=+(pl.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/)||[])[1]||0;
+      const uris=pl.split('\n').map(s=>s.trim()).filter(s=>s&&!s.startsWith('#'));
+      if(SEG.seq<0||SEG.seq<ms-1)SEG.seq=ms+uris.length-2; // start near the live edge
+      for(let i=0;i<uris.length&&SEG.running;i++){
+        const seq=ms+i;if(seq<=SEG.seq)continue;
+        const u=new URL(uris[i],base).href;
+        const ts=new Uint8Array(await (await fetch(u,{signal:timeoutSignal(15000)})).arrayBuffer());
+        SEG.seq=seq;await processSegment(ts);
+      }
+      const td=+(pl.match(/#EXT-X-TARGETDURATION:(\d+)/)||[])[1]||8;wait=Math.max(2000,td*500);
+    }catch(e){console.warn('segment',e);if(SEG.running&&++SEG.fails>=3&&!SEG.ok){SEG.running=false;startCaptureFallback();return}}
+    await sleep(wait);
+  }
+}
+async function processSegment(ts){
+  const{data,aac}=demuxTS(ts);if(!data.length)return;
+  let bytes=data,drop=0;
+  if(aac){const{frames,rate}=adtsFrames(data);const keep=SEG.carry||[];bytes=concat([...keep,...frames]);drop=Math.round(keep.length*1024*16000/rate);SEG.carry=frames.slice(-6)}
+  let pcm;
+  try{pcm=await decodeTo16k(bytes)}catch(e){if(++SEG.fails>=3&&!SEG.ok){SEG.running=false;startCaptureFallback()}return}
+  SEG.ok++;
+  if(drop&&pcm.length>drop)pcm=pcm.subarray(drop);
+  let peak=0;for(let i=0;i<pcm.length;i+=8)peak=Math.max(peak,Math.abs(pcm[i]));$('lvl').style.width=Math.min(100,peak*250)+'%';
+  const arrived=Date.now();for(let i=0;i<pcm.length;i+=512)vad(pcm.subarray(i,i+512),16000,arrived-(pcm.length-i)/16);
+}
+
+// Voice activity detection: radio calls are bursts of speech with hiss between them.
+let floor=0.003,inSpeech=false,segBufs=[],segLen=0,silentFor=0,voicedFor=0,preroll=[],segStart=0;
+const sensFactor=()=>4.2-(+$('sens').value)*0.32;
 $('sens').oninput=()=>{$('sensLbl').textContent=$('sens').value+'/10';store.set('sens',$('sens').value)};
-function vad(chunk,sr){
-  let sum=0;for(let i=0;i<chunk.length;i++)sum+=chunk[i]*chunk[i];const rms=Math.sqrt(sum/chunk.length);
-  const dt=chunk.length/sr;
-  // track noise floor: falls fast, rises slowly
+function vad(chunk,sr,tMs){
+  let sum=0;for(let i=0;i<chunk.length;i++)sum+=chunk[i]*chunk[i];const rms=Math.sqrt(sum/chunk.length),dt=chunk.length/sr;
   floor=rms<floor?floor*0.9+rms*0.1:floor*0.999+rms*0.001;floor=Math.max(floor,1e-4);
-  const loud=rms>Math.max(0.006,floor*sensFactor());
-  if(!inSpeech){
-    preroll.push(chunk);if(preroll.length>Math.ceil(0.35/dt))preroll.shift();
-    if(loud){inSpeech=true;segBufs=[...preroll];segLen=segBufs.reduce((s,b)=>s+b.length,0);preroll=[];silentFor=0;voicedFor=dt}
-    return;
-  }
-  segBufs.push(chunk);segLen+=chunk.length;
-  if(loud){silentFor=0;voicedFor+=dt}else silentFor+=dt;
-  const dur=segLen/sr;
-  if(silentFor>1.0||dur>28){
-    const bufs=segBufs;inSpeech=false;segBufs=[];segLen=0;
-    if(voicedFor>=0.6)enqueue(bufs,sr);
-    voicedFor=0;
-  }
+  const loud=rms>Math.max(0.004,floor*sensFactor());
+  if(!inSpeech){preroll.push(chunk.slice());if(preroll.length>Math.ceil(0.35/dt))preroll.shift();
+    if(loud){inSpeech=true;segBufs=[...preroll];segLen=segBufs.reduce((s,b)=>s+b.length,0);preroll=[];silentFor=0;voicedFor=dt;segStart=tMs||Date.now()}return}
+  segBufs.push(chunk.slice());segLen+=chunk.length;if(loud){silentFor=0;voicedFor+=dt}else silentFor+=dt;
+  if(silentFor>1.0||segLen/sr>28){const bufs=segBufs;inSpeech=false;segBufs=[];segLen=0;if(voicedFor>=0.6)enqueue(bufs,sr,segStart);voicedFor=0}
 }
-function enqueue(bufs,sr){
+function enqueue(bufs,sr,t){
   const n=bufs.reduce((s,b)=>s+b.length,0),all=new Float32Array(n);let o=0;for(const b of bufs){all.set(b,o);o+=b.length}
-  // resample to 16 kHz (linear) and peak-normalise
-  const ratio=sr/16000,m=Math.floor(n/ratio),out=new Float32Array(m);let peak=0;
-  for(let i=0;i<m;i++){const x=i*ratio,i0=Math.floor(x),f=x-i0;out[i]=all[i0]*(1-f)+(all[i0+1]||0)*f;peak=Math.max(peak,Math.abs(out[i]))}
-  if(peak>0){const g=Math.min(0.9/peak,20);for(let i=0;i<m;i++)out[i]*=g}
-  queue.push({audio:out,t:Date.now()-Math.round(n/sr*1000)});pump();
+  let out=all;
+  if(sr!==16000){const ratio=sr/16000,m=Math.floor(n/ratio);out=new Float32Array(m);for(let i=0;i<m;i++){const x=i*ratio,i0=Math.floor(x),f=x-i0;out[i]=all[i0]*(1-f)+(all[i0+1]||0)*f}}
+  let peak=0;for(let i=0;i<out.length;i++)peak=Math.max(peak,Math.abs(out[i]));if(peak>0){const g=Math.min(0.9/peak,20);for(let i=0;i<out.length;i++)out[i]*=g}
+  queue.push({audio:out,t});pump();
+}
+// Fallback for browsers that can't decode the segments: tap the audio player instead.
+let captured=false;
+async function startCaptureFallback(){
+  if(captured)return;
+  try{
+    if(audio.paused){$('optSound').checked=true;await startSound()}
+    const c=getCtx(),src=c.createMediaElementSource(audio);src.connect(c.destination);
+    const WORKLET=`class Tap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.n=0}process(i){const a=i[0]&&i[0][0];if(a){for(let k=0;k<a.length;k++){this.b[this.n++]=a[k];if(this.n===2048){this.port.postMessage(this.b.slice());this.n=0}}}return true}}registerProcessor('tap',Tap);`;
+    await c.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET],{type:'text/javascript'})));
+    const tap=new AudioWorkletNode(c,'tap'),sink=c.createGain();sink.gain.value=0;src.connect(tap).connect(sink).connect(c.destination);
+    tap.port.onmessage=e=>vad(e.data,c.sampleRate,Date.now());captured=true;
+  }catch(e){showErr('This browser can play the radio but can\'t transcribe it. Try Chrome or Safari.')}
 }
 
-let listening=false;
-async function play(){
-  const btn=$('start');btn.disabled=true;state('CONNECTING');
-  try{
-    getCtx();const resumed=actx.resume(); // must start inside the tap on iPhone
-    if(hls){hls.destroy();hls=undefined}
-    audio.pause();audio.removeAttribute('src');audio.load();
-    // Prefer hls.js (MSE) so Web Audio capture works everywhere; native HLS only as a fallback.
-    if(window.Hls&&Hls.isSupported()){
-      hls=new Hls({liveSyncDurationCount:3,enableWorker:true});hls.loadSource(STREAM);hls.attachMedia(audio);
-      let tries=0;
-      hls.on(Hls.Events.ERROR,(_e,d)=>{
-        if(!d.fatal)return;
-        if(tries++<4){state('RECONNECTING');
-          if(d.type===Hls.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else setTimeout(()=>hls&&hls.startLoad(),1500);return}
-        if(audio.canPlayType('application/vnd.apple.mpegurl')){hls.destroy();hls=undefined;audio.src=STREAM;audio.play().catch(()=>{});
-          state('LIVE · AUDIO ONLY',true);showErr('This browser could only play the stream in basic mode, so transcription is paused. Reload to try again.');return}
-        state('STREAM ERROR — TRY FALLBACK');btn.textContent='TRY AGAIN';listening=false});
-      hls.on(Hls.Events.FRAG_BUFFERED,()=>{tries=0});
-    }else if(audio.canPlayType('application/vnd.apple.mpegurl'))audio.src=STREAM;
-    else throw new Error('HLS unsupported');
-    const playing=audio.play();
-    await resumed;await setupCapture();await playing;
-    listening=true;state('LIVE',true);btn.textContent='STOP';keepAwake(true);
-    if(!worker)startWorker();
-  }catch(e){console.warn(e);state('USE FALLBACK PLAYER');btn.textContent='TRY AGAIN';listening=false}
-  finally{btn.disabled=false}
+/* ================================================================
+   RADIO PLAYBACK
+   ================================================================ */
+const audio=new Audio();audio.crossOrigin='anonymous';audio.preload='none';audio.setAttribute('playsinline','');
+let hls=null,listening=false,wakeLock=null;
+function state(text,live=false){$('status').textContent=text;$('beacon').classList.toggle('live',live)}
+// Start sound inside the tap (required on iPhone). Native HLS first, hls.js elsewhere.
+function startSound(){
+  if(hls){hls.destroy();hls=null}
+  if(audio.canPlayType('application/vnd.apple.mpegurl')){audio.src=STREAM;return audio.play()}
+  const go=()=>{hls=new window.Hls({liveSyncDurationCount:3});hls.loadSource(STREAM);hls.attachMedia(audio);let tries=0;
+    hls.on(window.Hls.Events.ERROR,(_e,d)=>{if(!d.fatal)return;if(tries++<4){d.type===window.Hls.ErrorTypes.MEDIA_ERROR?hls.recoverMediaError():setTimeout(()=>hls&&hls.startLoad(),1500);return}state('NO SOUND · USE FALLBACK')});
+    hls.on(window.Hls.Events.FRAG_BUFFERED,()=>{tries=0});return audio.play()};
+  return window.Hls?go():loadScript(HLS_SRC).then(go);
 }
-// Keep the screen on while listening: a locked iPhone pauses audio and transcription.
-let wakeLock=null;
+function stopSound(){audio.pause();if(hls){hls.destroy();hls=null}audio.removeAttribute('src')}
 async function keepAwake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&listening)keepAwake(true)});
-function stop(){keepAwake(false);listening=false;audio.pause();if(hls){hls.destroy();hls=undefined}state('STOPPED');$('start').textContent='START LISTENING'}
+async function play(){
+  const btn=$('start');btn.disabled=true;state('CONNECTING');
+  const c=getCtx();c&&c.resume&&c.resume();
+  let sound=null;
+  if($('optSound').checked)sound=startSound().catch(e=>{console.warn(e);state('NO SOUND · USE FALLBACK')});
+  if(!worker)startWorker();
+  SEG.running=true;SEG.seq=-1;SEG.carry=null;SEG.fails=0;segmentLoop();
+  listening=true;btn.textContent='STOP';btn.disabled=false;keepAwake(true);
+  await sound;if(listening&&!/FALLBACK/.test($('status').textContent))state($('optSound').checked?'LIVE':'LIVE · MUTED',true);
+}
+function stop(){listening=false;SEG.running=false;stopSound();keepAwake(false);state('STOPPED');$('start').textContent='START LISTENING';$('lvl').style.width='0'}
 $('start').onclick=()=>listening?stop():play();
-audio.addEventListener('playing',()=>state('LIVE',true));
+$('optSound').onchange=()=>{store.set('sound',$('optSound').checked);if(!listening)return;if($('optSound').checked){startSound().then(()=>state('LIVE',true)).catch(()=>{})}else if(!captured){stopSound();state('LIVE · MUTED',true)}};
+$('optDouble').onchange=()=>store.set('double',$('optDouble').checked);
 audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
-$('fallback').onclick=()=>$('fallbackDialog').showModal();
+audio.addEventListener('playing',()=>listening&&state('LIVE',true));
+$('fallback').onclick=()=>{const f=document.querySelector('#fallbackDialog iframe');if(!f.src)f.src=f.dataset.src;$('fallbackDialog').showModal()};
 $('closeDialog').onclick=()=>$('fallbackDialog').close();
 
-/* ============================================================
+/* ---- Claude key ---- */
+$('apiKey').value=store.get('anthropicKey','')?'••••••••••••':'';
+$('optClaude').checked=store.get('claudeOn',false);
+$('optClaude').onchange=()=>{store.set('claudeOn',$('optClaude').checked);if($('optClaude').checked&&!store.get('anthropicKey',''))$('keyNote').textContent='Add your API key to turn this on.'};
+$('keySave').onclick=()=>{const v=$('apiKey').value.trim();if(!v||v.startsWith('••')){if(!v){store.del('anthropicKey');$('keyNote').textContent='Key removed.'}return}store.set('anthropicKey',v);$('apiKey').value='••••••••••••';$('optClaude').checked=true;store.set('claudeOn',true);$('keyNote').textContent='Key saved in this browser. It will be used on the next call.'};
+
+/* ================================================================
    INIT
-   ============================================================ */
+   ================================================================ */
 paintAlertsBtn();
-$('volume').value=store.get('vol',0.8);
+$('optSound').checked=store.get('sound',true);$('optDouble').checked=store.get('double',true);
 $('sens').value=store.get('sens',6);$('sensLbl').textContent=$('sens').value+'/10';
-$('radius').value=store.get('radius',0.5);$('radiusLbl').textContent=$('radius').value+' mi';
+setRadius(store.get('radius',0.5),false);
+buildStreetIndex(BUILTIN.split('|'));
 store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
-loadStreets();
-const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved');
+const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0);
+// Load heavier pieces after first paint.
+setTimeout(()=>{loadStreetData();if(!audio.canPlayType('application/vnd.apple.mpegurl'))loadScript(HLS_SRC).catch(()=>{})},150);
 </script>
 </body>
 </html>
