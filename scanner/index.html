@@ -59,7 +59,7 @@
     .empty{padding:18px 16px;color:var(--muted);font-size:13px;line-height:1.6}.empty b{color:var(--text)}
     .line{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid #12293a;font-size:14px;line-height:1.5;animation:fade .35s;cursor:default}
     .line.alert{background:#3a0f17aa;box-shadow:inset 3px 0 var(--red)}
-    .line.located{box-shadow:inset 3px 0 var(--orange);cursor:pointer}
+    .line.located{box-shadow:inset 3px 0 var(--tc,var(--orange));cursor:pointer}
     .line.located:hover{background:#0d2232}
     .line .t{color:var(--dim);font:700 11px ui-monospace,Menlo,monospace;padding-top:3px}
     .line .x{color:#d9ebf2;overflow-wrap:anywhere}
@@ -162,12 +162,16 @@
     @keyframes playring{0%{box-shadow:0 0 0 0 #61dcff88}100%{box-shadow:0 0 0 9px #61dcff00}}
     .line.related{background:#0e2a3a;box-shadow:inset 3px 0 var(--cyan),inset 0 0 0 1px #61dcff40}
     .line.related .t{color:var(--cyan)}
-    .code{border-bottom:1px dotted #61dcffaa;cursor:help;position:relative;outline:none}
-    .code:hover,.code:focus{color:var(--cyan)}
+    .code{background:#0f3346;color:#cdf3ff;box-shadow:inset 0 0 0 1px #2c6f8c;border-radius:3px;padding:0 3px;cursor:help;position:relative;outline:none}
+    .code:hover,.code:focus{background:#16506c;color:#fff}
     .code:hover::after,.code:focus::after{content:attr(data-m);position:absolute;z-index:20;left:-4px;top:calc(100% + 6px);width:max-content;max-width:230px;padding:7px 9px;border-radius:7px;background:#06131d;border:1px solid var(--line);box-shadow:0 10px 24px #000b;color:var(--text);font:600 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:0;white-space:normal;pointer-events:none}
-    .tag.type{background:#0e3a4a;border-color:#3b8fae;color:#bfefff}
-    .tag.code{background:#0b1e2b;border-color:#24485e;color:#a9c7d6;font-size:9.5px;font-weight:650;letter-spacing:.01em;padding:3px 7px;cursor:help}
-    .tag.code b{color:var(--cyan);font-weight:850;margin-right:3px;letter-spacing:.04em}
+    .tag.type{--c:var(--tc,#9fb6c4);background:color-mix(in srgb,var(--c) 20%,#071522);border-color:var(--c);color:color-mix(in srgb,var(--c) 55%,#ffffff)}
+    #legend{display:flex;flex-wrap:wrap;gap:5px 12px;padding:8px 14px 10px;border-top:1px solid var(--line2);font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+    #legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+    #feed.collapsed #legend{display:none}
+    .tag.tone{background:#1a1d3d;border-color:#5b8cff;color:#c9d6ff}
+    .tag.code{background:#0f3346;border-color:#2c6f8c;color:#cdf3ff;font-size:9.5px;font-weight:650;letter-spacing:.01em;padding:3px 7px;cursor:help}
+    .tag.code b{color:#7fe3ff;font-weight:850;margin-right:3px;letter-spacing:.04em}
     .morse{font:800 16px ui-monospace,Menlo,monospace;letter-spacing:.18em;color:#bfefff}
     .mpat{display:block;margin-top:3px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--dim);overflow-wrap:anywhere}
     .ic{width:16px;height:16px;flex:0 0 auto}
@@ -215,6 +219,7 @@
       .grab{display:block;width:44px;height:5px;border-radius:3px;background:#3d6a80;margin:7px auto 0}
       .phead{min-height:40px;padding:4px 10px 6px 14px;border:0;cursor:pointer}
       #feedToggle{display:none}
+      #legend{display:none}#feed.open #legend{display:flex}
       .mapbar{bottom:calc(var(--sheet) + 12px);right:var(--gap)}
       .mapbar button{min-height:40px;font-size:10px;padding:0 12px 0 10px}
       .leaflet-bottomright{display:none}
@@ -249,6 +254,7 @@
     <div class="grab"></div>
     <div class="phead" id="feedHead">LIVE TRANSCRIPT <span class="muted" id="tCount"></span><span class="muted" id="upcoming"></span><span class="spacer"></span><button class="secondary" id="feedToggle" type="button" title="Collapse the transcript">HIDE</button></div>
     <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Calls appear here as you hear them and are pinned on the map. Tap ▶ to hear a call again. Green pins are resolved.</div></div>
+    <div id="legend" aria-label="Pin colors"></div>
   </aside>
 
   <div id="side">
@@ -285,47 +291,37 @@
   <dialog id="settingsDlg" aria-label="Settings">
     <div class="modal-head">SETTINGS<button type="button" data-close aria-label="Close">×</button></div>
     <div class="modal-body">
-      <div>
-        <div class="lbl">TRANSCRIPTION</div>
-        <select id="engine" aria-label="Transcription service">
-          <option value="groq">Groq · Whisper Large v3 (free, recommended)</option>
-          <option value="deepgram">Deepgram · Nova-3</option>
-          <option value="openai">OpenAI · GPT-4o Transcribe</option>
-          <option value="device">On this device (no key; big download, less accurate)</option>
-        </select>
-        <div id="keyBox" style="margin-top:8px">
-          <div class="row"><input id="sttKey" type="password" placeholder="Paste API key" autocomplete="off"><button class="secondary fit" id="sttKeySave" type="button">SAVE</button></div>
-          <button class="linkbtn" id="useShared" type="button" style="display:none;padding:0;margin-top:4px">USE THE SHARED KEY INSTEAD</button>
-          <div class="mnote" id="engineNote"></div>
-        </div>
-        <div id="deviceBox" style="margin-top:8px;display:none">
-          <select id="model" aria-label="On-device model"></select><div class="mnote" id="modelNote"></div>
-          <label class="switch" style="margin-top:10px"><input type="checkbox" id="optDouble" checked><span>Double-check each call<small>Hears every call twice and compares. More accurate, twice the work.</small></span></label>
-        </div>
+      <div><div class="lbl">RADIO</div>
+        <label class="switch"><input type="checkbox" id="optSound" checked><span>Play the radio<small>Turn off to follow the transcript silently.</small></span></label>
+        <div class="lbl" style="margin-top:14px">CALL PICKUP SENSITIVITY <span id="sensLbl"></span></div>
+        <input id="sens" type="range" min="1" max="10" step="1" value="6" aria-label="Call pickup sensitivity">
+        <div class="mnote">How far above the background static a transmission must be to count as a call. Turn it up if quiet calls are missed; turn it down if static or hiss shows up as calls.</div>
       </div>
-      <div><div class="lbl">ALERTS IN MY ZONE</div>
-        <label class="switch"><input type="checkbox" id="optLoud" checked><span>Loud alert beeps<small>The usual two-tone beep, louder and repeated, with the radio turned down while it plays.</small></span></label>
-        <label class="switch" style="margin-top:10px"><input type="checkbox" id="optSpeak"><span>Say the location out loud<small>"Police activity near you, collision at Grand Avenue, 0.3 miles away."</small></span></label>
-        <button class="secondary" id="testAlarm" type="button" style="margin-top:10px">TEST ALERT SOUND</button>
+      <div><div class="lbl">ALERTS IN YOUR ZONE</div>
+        <label class="switch"><input type="checkbox" id="optLoud" checked><span>Loud alert beeps<small>Louder, repeated beeps, with the radio turned down while they play.</small></span></label>
+        <label class="switch" style="margin-top:10px"><input type="checkbox" id="optSpeak"><span>Say the location out loud</span></label>
+        <button class="secondary" id="testAlarm" type="button" style="margin-top:12px">TEST ALERT SOUND</button>
       </div>
-      <div><div class="lbl">FREE GROQ ALLOWANCE · LAST 24 HOURS</div><div class="note" id="usage"></div></div>
-      <div><div class="lbl">ADDRESS CHECK</div><label class="switch"><input type="checkbox" id="optAI" checked><span>AI-check calls with locations<small>Reviews each call that mentions a place against recent calls and the county street list, fixes misheard names, ignores unit call signs like "23 Adam", and knows local landmarks like the Cuesta Grade. Prefers SLO County; real addresses in nearby counties are pinned too. Uses your Groq key.</small></span></label></div>
-      <div><div class="lbl">RADIO</div><label class="switch"><input type="checkbox" id="optSound" checked><span>Play radio sound<small>Turn off to transcribe silently.</small></span></label></div>
-      <div><div class="lbl">VOICE DETECTION <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6" aria-label="Voice detection sensitivity"></div>
       <div id="watchSec">
         <div class="lbl">WATCHED STREETS <span id="watchN2"></span></div>
         <div class="chips" id="chips"></div>
         <form id="kwForm" class="row" style="margin-top:8px"><input id="kwInput" type="text" placeholder="Add a street or keyword"><button class="secondary fit" type="submit">ADD</button></form>
       </div>
-      <div>
-        <div class="lbl">CLAUDE CHECK (OPTIONAL)</div>
-        <label class="switch"><input type="checkbox" id="optClaude"><span>Have Claude review each call<small>Fixes remaining mishearings, like odd street names. Needs your own Anthropic API key, saved only in this browser and sent only to Anthropic. A fraction of a cent per call.</small></span></label>
-        <div class="row" style="margin-top:8px"><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"><button class="secondary fit" id="keySave" type="button">SAVE</button></div>
-        <div class="note" id="keyNote"></div>
+      <div><div class="lbl">TRANSCRIPTION</div>
+        <div id="keyBox">
+          <div class="mnote" id="engineNote" style="margin:0 0 8px"></div>
+          <div class="row"><input id="sttKey" type="password" placeholder="Your own Groq key (optional)" autocomplete="off"><button class="secondary fit" id="sttKeySave" type="button">SAVE</button></div>
+          <button class="linkbtn" id="useShared" type="button" style="display:none;padding:0;margin-top:4px">USE THE SHARED KEY INSTEAD</button>
+          <div class="mnote" id="usage"></div>
+        </div>
       </div>
-      <div><div class="lbl">TEST A PHRASE</div><form id="testForm" class="row"><input id="testInput" type="text" placeholder="e.g. 415 at 900 block of Ramona, Grover"><button class="secondary fit" type="submit">RUN</button></form></div>
-      <div><div class="lbl">TRANSCRIPT</div><div class="row"><button class="secondary" id="exportBtn" type="button">EXPORT TEXT</button><button class="secondary" id="clearBtn" type="button">CLEAR</button><button class="secondary" id="fallback" type="button">FALLBACK PLAYER</button></div></div>
-      <div class="note" id="streetNote">Loading county streets…</div>
+      <div><div class="lbl">TRANSCRIPT</div><div class="row"><button class="secondary" id="exportBtn" type="button">DOWNLOAD TEXT</button><button class="secondary" id="clearBtn" type="button">CLEAR ALL CALLS</button></div></div>
+      <div hidden>
+        <select id="engine"><option value="groq">Groq</option><option value="deepgram">Deepgram</option><option value="openai">OpenAI</option><option value="device">Device</option></select>
+        <div id="deviceBox"><select id="model"></select><div id="modelNote"></div><input type="checkbox" id="optDouble" checked></div>
+        <input type="checkbox" id="optAI" checked><input type="checkbox" id="optClaude"><input id="apiKey" type="password"><button id="keySave" type="button"></button><div id="keyNote"></div>
+        <form id="testForm"><input id="testInput"></form><button id="fallback" type="button"></button><div id="streetNote"></div>
+      </div>
     </div>
   </dialog>
 
@@ -370,18 +366,41 @@ const TOWN_FULL={'slo':'San Luis Obispo','san luis':'San Luis Obispo','cal poly'
 const titleCase=s=>s.replace(/\b\w/g,c=>c.toUpperCase());
 const townName=t=>TOWN_FULL[t]||titleCase(t);
 const HIGHWAYS={'101':'US 101','1':'CA 1','46':'CA 46','41':'CA 41','58':'CA 58','227':'CA 227','166':'CA 166','135':'CA 135'};
-const KINDS=[
- [/\b(11[- ]?8[0-3]|collision|crash|t[- ]?bone|rollover|vehicle (?:vs|versus)|hit and run|20001|20002|accident)\b/i,'COLLISION'],
- [/\b(structure fire|vehicle fire|vegetation fire|brush fire|smoke|flames|fire alarm)\b/i,'FIRE'],
- [/\b(shots? fired|gun|firearm|weapon|knife|stabb\w*|246|245|417)\b/i,'WEAPON'],
- [/\b(domestic|273\.?5)\b/i,'DOMESTIC'],[/\b(415|disturbance|fight|argument|yelling|noise|loud music|party|barking)\b/i,'DISTURBANCE / NOISE'],
- [/\b(211|robbery)\b/i,'ROBBERY'],[/\b(459|burglary|break[- ]in)\b/i,'BURGLARY'],
- [/\b(484|488|10851|theft|stolen|shoplift\w*)\b/i,'THEFT'],[/\b(23152|23153|dui|drunk driver|reckless)\b/i,'DUI / RECKLESS'],
- [/\b(medical|unconscious|not breathing|difficulty breathing|overdose|chest pain|abdominal pain|seizure|ambulance|fall victim|fell|bleeding|patient|stroke|cardiac|lift assist|BLS|ALS)\b/i,'MEDICAL'],
- [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],[/\b(5150|mental health|suicidal)\b/i,'MENTAL HEALTH'],[/\b(welfare check|check the welfare|missing)\b/i,'WELFARE CHECK'],[/\b(traffic hazard|debris|in the roadway|disabled vehicle|stalled|road closed)\b/i,'TRAFFIC HAZARD'],[/\b(dog|cat|horse|cattle|cow|animal)\b/i,'ANIMAL'],
- [/\b(alarm)\b/i,'ALARM'],[/\b(trespass\w*|602)\b/i,'TRESPASS'],[/\b(vandal\w*|594|graffiti)\b/i,'VANDALISM'],
- [/\b(pursuit|fleeing|evading|2800)\b/i,'PURSUIT'],[/\b(traffic stop|11[- ]?95|10[- ]?38)\b/i,'TRAFFIC STOP'],
+const KINDS=[ // words that name the type of call (codes are read separately, with address checks)
+ [/\b(structure fire|house fire|vehicle fire|car fire|vegetation fire|grass fire|brush fire|dumpster fire|working fire|smoke (check|investigation|showing|in the area)|flames|fire alarm|gas leak|odor of gas|smell of gas|wires? down|transformer|controlled burn|illegal burn)\b/i,'FIRE'],
+ [/\b(medical aid|medical|unconscious|unresponsive|not breathing|difficulty breathing|shortness of breath|trouble breathing|overdose|chest pains?|abdominal pain|seizure|seizing|diabetic|allergic reaction|fall victim|fell|fallen|lift assist|bleeding|laceration|injur(y|ies|ed)|sick person|syncope|fainted|passed out|pregnant|in labor|stroke|cardiac|CPR|patients?|BLS|ALS|ambulance|medic \d+)\b/i,'MEDICAL'],
+ [/\b(collision|crash|t[- ]?bone|roll ?over|vehicle (?:vs|versus)|hit and run|accident|over the side|non-?injury|rear[- ]ended)\b/i,'COLLISION'],
+ [/\b(shots? fired|shooting|gun|firearm|weapon|knife|stabb\w*|brandish\w*)\b/i,'WEAPON'],
+ [/\b(assault|battery|punched|beat(en|ing)? up|attacked)\b/i,'ASSAULT'],[/\b(domestic|spousal)\b/i,'DOMESTIC'],
+ [/\b(robbery|robbed|carjack\w*)\b/i,'ROBBERY'],[/\b(burglary|break[- ]in|broke in)\b/i,'BURGLARY'],
+ [/\b(theft|stolen|shoplift\w*)\b/i,'THEFT'],[/\b(dui|drunk driver|reckless|swerving|wrong[- ]way driver|speeding)\b/i,'DUI / RECKLESS'],
+ [/\b(pursuit|fleeing|evading)\b/i,'PURSUIT'],[/\b(traffic stop|vehicle stop|ped stop)\b/i,'TRAFFIC STOP'],
+ [/\b(traffic hazard|debris|in the roadway|in the lanes|disabled vehicle|stalled|road closed|signal out|livestock)\b/i,'TRAFFIC HAZARD'],
+ [/\b(mental health|suicidal|suicide|crisis)\b/i,'MENTAL HEALTH'],
+ [/\b(disturbance|fight|fighting|argument|arguing|yelling|screaming|noise|loud music|loud party|barking)\b/i,'DISTURBANCE / NOISE'],
+ [/\b(suspicious|prowler|loitering)\b/i,'SUSPICIOUS'],[/\b(welfare check|check the welfare|check on the welfare|missing person|runaway)\b/i,'WELFARE CHECK'],
+ [/\b(trespass\w*|refusing to leave)\b/i,'TRESPASS'],[/\b(vandal\w*|graffiti|tagging)\b/i,'VANDALISM'],
+ [/\b(alarm|panic button)\b/i,'ALARM'],[/\b(dogs?|cat|horse|cattle|cows?|animal|coyote|mountain lion|deer)\b/i,'ANIMAL'],
 ];
+// Colors by kind of emergency (pins, street lines, tags)
+const TYPE_GROUPS=[
+ {key:'medical',label:'Medical',color:'#5b8cff',kinds:['MEDICAL','MENTAL HEALTH','DEATH']},
+ {key:'fire',label:'Fire',color:'#ff5b3a',kinds:['FIRE']},
+ {key:'traffic',label:'Traffic',color:'#f5b83d',kinds:['COLLISION','TRAFFIC HAZARD','TRAFFIC STOP','DUI / RECKLESS','PURSUIT']},
+ {key:'violent',label:'Violence / weapons',color:'#ff4fa3',kinds:['WEAPON','ASSAULT','ROBBERY','HOMICIDE','KIDNAPPING','SEX CRIME','DOMESTIC','THREATS','OFFICER NEEDS HELP','CHILD WELFARE']},
+ {key:'property',label:'Property crime',color:'#a98bff',kinds:['BURGLARY','BURGLARY ALARM','THEFT','VANDALISM','TRESPASS','FRAUD','ALARM','DRUGS']},
+ {key:'other',label:'Disturbance / other',color:'#4fd1c5',kinds:['DISTURBANCE / NOISE','DISTURBANCE','SUSPICIOUS','WELFARE CHECK','ANIMAL','MORSE CODE']},
+];
+const UNKNOWN_COLOR='#9fb6c4';
+const typeGroup=kind=>TYPE_GROUPS.find(g=>g.kinds.includes(kind))||null;
+const typeColor=kind=>(typeGroup(kind)||{color:UNKNOWN_COLOR}).color;
+// Fire/EMS dispatch is sent with alert tones first; a call right after tones is a medical call unless the words say otherwise
+function tonedKinds(kinds){
+  const k=kinds.filter(x=>x!=='MEDICAL');
+  if(k[0]==='FIRE')return['FIRE','MEDICAL'].filter((x,i)=>i===0||kinds.includes('MEDICAL'));
+  if(k[0]==='COLLISION')return['COLLISION','MEDICAL'];
+  return['MEDICAL',...k].slice(0,2);
+}
 // California radio codes, penal/vehicle code sections and dispatch shorthand: [meaning, call type or null, source]
 const CODE_SRC={t:'10-code (meanings vary a little by agency)',e:'CHP 11-code',c:'Response code',p:'California Penal Code section',v:'California Vehicle Code section',h:'Health & Safety Code section',w:'Welfare & Institutions Code section',a:'Radio shorthand'};
 const CODES={
@@ -468,6 +487,28 @@ function morseDecode(a,sr=16000){
   if(chars.length<2||(chars.match(/\?/g)||[]).length>chars.length*0.3)return null;
   if(new Set(chars).size<2||!/\./.test(pattern)||!/-/.test(pattern))return null; // plain repeated beeps are alert tones, not Morse
   return{text:out,pattern:pattern.trim(),wpm:Math.round(1.2/unit),hz:f0};
+}
+// Alert tones (fire/EMS dispatch beeps): steady single pitches, unlike speech. Returns seconds of tone before any speech,
+// and how much of the loud audio is tone.
+function toneScan(a,sr=16000){
+  const W=320,nF=Math.min(Math.floor(a.length/W),1500);if(nF<8)return{lead:0,frac:0,speech:0};
+  const en=new Float32Array(nF);for(let f=0;f<nF;f++){let q=0;for(let i=f*W;i<f*W+W;i++)q+=a[i]*a[i];en[f]=q/W}
+  const hiE=Float32Array.from(en).sort()[Math.floor(nF*0.9)];if(hiE<1e-6)return{lead:0,frac:0,speech:0};
+  const loud=f=>en[f]>hiE*0.06,fq=new Float32Array(nF);
+  for(let f=0;f<nF;f++){if(!loud(f))continue;let best=0,bf=0;for(let fr=300;fr<=2400;fr+=25){const g=goertzel(a,f*W,W,fr,sr);if(g>best){best=g;bf=fr}}if(2*best/en[f]>0.6)fq[f]=bf}
+  // steady tones: runs of >=0.2 s holding one pitch
+  const tone=new Uint8Array(nF);for(let f=0;f<nF;){if(!fq[f]){f++;continue}let g=f+1;while(g<nF&&fq[g]&&Math.abs(fq[g]-fq[g-1])<=50)g++;if(g-f>=10)for(let k=f;k<g;k++)tone[k]=1;f=g}
+  let lead=0,speechAt=-1,run=0,nLoud=0,nTone=0;
+  for(let f=0;f<nF;f++){if(!loud(f)){run=0;continue}nLoud++;if(tone[f]){nTone++;run=0;if(speechAt<0)lead+=W/sr}else if(++run>=8&&speechAt<0)speechAt=f}
+  return{lead,frac:nLoud?nTone/nLoud:0,speech:(nLoud-nTone)*W/sr};
+}
+let lastTonesAt=0;
+// Sort out what a piece of audio is before spending a transcription on it
+function audioKind(item){
+  const mc=morseDecode(item.audio);if(mc)return{morse:mc};
+  const t=toneScan(item.audio),wall=item.wall||Date.now();
+  if(t.frac>0.8&&t.speech<0.4){if(!item.partial)lastTonesAt=wall;return{tonesOnly:true}}
+  return{toned:t.lead>=0.3||(wall-lastTonesAt>0&&wall-lastTonesAt<20000)};
 }
 // dots and dashes written out in a transcript (". . . - - -", "dit dah")
 function morseFromText(t){
@@ -593,7 +634,7 @@ function streetLocal(s,town){
   let px=sx/c,py=sy/c,best=Infinity,bx=px,by=py;
   if(town&&TOWNS[town]){const[la,lo]=TOWNS[town];px=lo*KX;py=la*KY}
   for(const i of ids)for(let p=SD.off[i];p<SD.off[i+1]-1;p++){const r=ptSeg(px,py,SD.x[p],SD.y[p],SD.x[p+1],SD.y[p+1]);if(r[0]<best){best=r[0];bx=r[1];by=r[2]}}
-  const[la,lo]=toLL(bx,by);return{lat:la,lon:lo,precise:false};
+  const[la,lo]=toLL(bx,by);return{lat:la,lon:lo,precise:false,s};
 }
 function nearbyStreets(lat,lon,R){
   const X=lon*KX,Y=lat*KY,dLa=R/KY+CELL,dLo=R/KX+CELL,seen=new Map();
@@ -725,6 +766,7 @@ const hasMatch=(w,list)=>list.some(x=>simWord(w,x)>=0.5);
 const HALLUCINATIONS=/^(thank you|thanks for watching|you|bye|okay|uh|um|so|\.+|thank you for watching|please subscribe)[.!?\s]*$/i;
 function cleanText(t){
   t=(t||'').replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|♪/g,' ').replace(/\s+/g,' ').trim();
+  t=t.replace(/^((beep|boop|bleep|beeping)[\s,.!-]*)+/i,'').replace(/[\s,.]*((beep|bleep)[\s,.!-]*)+$/i,'.').replace(/^\.$/,'').trim(); // alert tones written out as words
   if(!t||HALLUCINATIONS.test(t)||/subscribe|thanks for watching/i.test(t))return'';
   const w=wordsOf(t);if(w.length>6&&new Set(w).size/w.length<.3)return'';
   return t;
@@ -1045,13 +1087,15 @@ const incidentLayer=L.layerGroup().addTo(map);
 let me=null,meAcc=0,meMarker=null,meCircle=null,accCircle=null;
 const incidents=[];let incSeq=0;
 const RESOLVED_SHOW=10*60e3,ACTIVE_SHOW=60*60e3; // resolved pins stay 10 min; others 1 hour after the last update
-const pinColor=inc=>inc.status==='resolved'?'#53ebb0':inc.inZone?'#ff4e5e':inc.precise?'#ff864e':'#e3b34f';
-const markerStyle=inc=>({radius:inc.line?7:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
+const incKind=inc=>{for(let i=inc.entries.length-1;i>=0;i--)if(inc.entries[i].kinds&&inc.entries[i].kinds.length)return inc.entries[i].kinds[0];return inc.kind||null};
+const incColor=inc=>typeColor(incKind(inc));
+const pinColor=inc=>inc.status==='resolved'?'#53ebb0':inc.inZone?'#ff4e5e':incColor(inc);
+const markerStyle=inc=>({radius:inc.line?7:inc.precise?10:9,color:pinColor(inc),weight:inc.inZone&&inc.status!=='resolved'?3.5:2.5,fillColor:inc.status==='resolved'?'#53ebb0':incColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
 // keep popups clear of the floating panels
 function popPad(){const w=innerWidth<=760;return{autoPanPaddingTopLeft:w?[10,190]:[430,110],autoPanPaddingBottomRight:w?[10,innerHeight*0.35]:[390,30]}}
 function callPopup(entry,r){
   const inc=entry&&entry.inc,n=inc?inc.entries.length:1,st=inc&&inc.status==='resolved'?'<span style="color:var(--green)"> · RESOLVED</span>':'';
-  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?' · '+esc(entry.kinds[0]):''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
+  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?` · <span style="color:${typeColor(entry.kinds[0])}">${esc(entry.kinds[0])}</span>`:''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
 }
 // A street named with no address or cross street: draw the street itself (the stretch near where the call was placed)
 function streetLine(s,lat,lon){
@@ -1062,8 +1106,9 @@ function streetLine(s,lat,lon){
     if(pts.length>1)out.push(pts)}
   return out.length?out:null;
 }
-const lineFor=(loc,g)=>loc&&loc.s&&loc.exact&&!g.precise?streetLine(loc.s,g.lat,g.lon):null;
-const lineStyle=inc=>({color:pinColor(inc),weight:6,opacity:inc.status==='resolved'?.6:.9,lineCap:'round',lineJoin:'round',bubblingMouseEvents:false});
+// approximate pins (a street but no exact spot) get the whole nearby stretch of that street drawn
+const lineFor=(loc,g)=>!g.precise&&(g.s||(loc&&loc.s))?streetLine(g.s||loc.s,g.lat,g.lon):null;
+const lineStyle=inc=>({color:inc.status==='resolved'?'#53ebb0':incColor(inc),dashArray:null,weight:6,opacity:inc.status==='resolved'?.6:.9,lineCap:'round',lineJoin:'round',bubblingMouseEvents:false});
 function incDist(inc){if(!me)return Infinity;let d=dist(me,[inc.lat,inc.lon]);if(inc.line)for(const seg of inc.line)for(const p of seg){const x=dist(me,p);if(x<d)d=x}return d}
 function styleInc(inc){inc.marker.setStyle(markerStyle(inc));if(inc.lineLayer)inc.lineLayer.setStyle(lineStyle(inc))}
 function setIncLine(inc,line){
@@ -1286,7 +1331,9 @@ function drawLine(entry){
   el.className='line'+(entry.alert&&!resolved?' alert':'')+(inc?' located':'')+(resolved?' resolved':'')+(inc&&inc===focusedInc?' related':'')+(entry.morse?' morseline':'');
   const tags=[];
   if(entry.partial)tags.push('<span class="tag pend">● still talking…</span>');
-  if(entry.kinds.length)tags.push(`<span class="tag type" title="Type of call">${esc(entry.kinds[0])}</span>`);
+  const tc=entry.kinds.length?typeColor(entry.kinds[0]):UNKNOWN_COLOR;el.style.setProperty('--tc',tc);
+  if(entry.kinds.length)tags.push(`<span class="tag type" title="Type of call${typeGroup(entry.kinds[0])?': '+typeGroup(entry.kinds[0]).label:''}">${esc(entry.kinds[0])}</span>`);
+  if(entry.toned)tags.push('<span class="tag tone" title="Dispatch alert tones were heard right before this call. Fire and medical calls are sent with tones.">ALERT TONES</span>');
   if(entry.results.length){const r=entry.results[0];tags.push(`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' ≈'}</span>`)}
   if(entry.zone&&!resolved)tags.push('<span class="tag al">IN YOUR ZONE</span>');
   else if(entry.hits.length&&!resolved)tags.push(`<span class="tag al" title="${esc(entry.hits.map(h=>h.name).join(', '))}">WATCHED STREET</span>`);
@@ -1339,6 +1386,7 @@ async function prepare(entry,merged,info={}){
     }
   }  // 3) still nothing: a numbered address on a misheard out-of-county road ("9000 Fairlane Highway" → 9000 Airline Highway)
   if(!entry.geo&&!info.partial&&SD.ready){const r=await regionalFallback(entry);if(r){entry.geo=r;entry.locs=[r.loc]}}
+  entry.toned=!!info.toned||!!entry.toned;if(entry.toned)entry.kinds=tonedKinds(entry.kinds);
 }
 // The check named a street the transcript misheard ("Fairlane" for Airline): fix that word in the text so it reads and highlights right
 function alignStreetWords(text,street){
@@ -1388,8 +1436,8 @@ async function playClip(entry){
 // ---------------- remember calls and pins between sessions ----------------
 let saveT;
 function saveState(){clearTimeout(saveT);saveT=setTimeout(()=>{const now=Date.now();
-  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units],line:i.line||null}));
-  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null,morse:l.morse||null}));
+  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units],line:i.line||null,kind:incKind(i)}));
+  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null,morse:l.morse||null,toned:!!l.toned}));
   store.set('dw_state',{v:1,saved:now,incs,lines:ls});
 },800)}
 function restoreState(){
@@ -1397,7 +1445,7 @@ function restoreState(){
   for(const x of st.incs||[]){if((x.status==='resolved'&&now-x.resolvedAt>RESOLVED_SHOW)||(x.status!=='resolved'&&now-x.lastAt>ACTIVE_SHOW))continue;
     byId.set(x.id,addIncident({time:new Date(x.time)},{label:x.label},{lat:x.lat,lon:x.lon,precise:x.precise,label:x.label},x))}
   for(const x of st.lines.sort((a,b)=>a.time-b.time)){if(now-x.time>ACTIVE_SHOW)continue;
-    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip,morse:x.morse||null};
+    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip,morse:x.morse||null,toned:!!x.toned};
     const inc=x.inc&&byId.get(x.inc);if(inc){e.inc=inc;inc.entries.push(e)}
     if(x.resolvedInc&&byId.get(x.resolvedInc))e.resolvedInc=byId.get(x.resolvedInc);
     reveal(e);
@@ -1428,6 +1476,7 @@ function reveal(entry){
     else{entry.inc=addIncident(entry,loc,g);newPin=true}
   }
   if(entry.inc&&!entry.inc.entries.includes(entry)){entry.inc.entries.push(entry);entry.inc.lastAt=Date.now();for(const u of entry.units)entry.inc.units.add(u)}
+  if(entry.inc)styleInc(entry.inc);
   // move the pin only when this call created it (its full version arrived) or it pins the place more precisely
   if(entry.geo&&entry.inc&&!newPin&&(entry.inc.entries[0]===entry||(entry.geo.g.precise&&!entry.inc.precise))){const{loc,g}=entry.geo;
     Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label});entry.inc.marker.setLatLng([g.lat,g.lon]);setIncLine(entry.inc,lineFor(loc,g));entry.inc.inZone=incDist(entry.inc)<=radiusM();styleInc(entry.inc)}
@@ -1458,6 +1507,7 @@ $('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim(
 $('clearBtn').onclick=()=>{focusedInc=null;lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0;store.del('dw_state');updateEdge()};
 $('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
 // Phone sheet
+$('legend').innerHTML=TYPE_GROUPS.map(g=>`<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')+'<span><i style="background:#53ebb0"></i>Resolved</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px #ff4e5e"></i>In your zone</span>';
 function setSheet(open){$('feed').classList.toggle('open',open);document.body.classList.toggle('sheet-open',open)}
 $('feedHead').onclick=e=>{if(e.target.closest('button'))return;if(innerWidth<=760)setSheet(!$('feed').classList.contains('open'))};
 document.querySelector('#feed .grab').onclick=()=>setSheet(!$('feed').classList.contains('open'));
@@ -1521,6 +1571,7 @@ const PROVIDERS={
     }},
 };
 async function apiErr(r){let m='';try{const j=await r.json();m=(j.error&&(j.error.message||j.error))||j.err_msg||j.message||''}catch{}const e=new Error(m||('HTTP '+r.status));e.status=r.status;e.retry=+r.headers.get('retry-after')||0;return e}
+if(store.get('engine','groq')!=='groq')store.set('engine','groq'); // one transcription service keeps things simple
 const engine=()=>store.get('engine','groq');
 // The site's shared Groq key (used until you add your own in Settings)
 const SHARED_GROQ=(()=>{try{return atob(["TzNGaFBkMXJG", "ek5CZmJ5SzVs", "UTg1QVFJWUYz", "YnlkR1dPYlhQ", "MDBRbGpOcjJB", "eFQ0bUlpcV9r", "c2c="].join('')).split('').reverse().join('')}catch{return''}})();
@@ -1540,7 +1591,9 @@ function keyTerms(){ // words for Deepgram to listen for
 let cloudPause=0,cloudBlocked=false,inflight=0;
 const entriesByTx=new Map();let idSeq=0;
 async function handleCloud(item){
-  {const mc=morseDecode(item.audio);if(mc){await showCall(item,{text:mc.text,unc:new Set(),agree:true},{morse:mc,partial:item.partial});return}}
+  const ak=audioKind(item);
+  if(ak.morse){await showCall(item,{text:ak.morse.text,unc:new Set(),agree:true},{morse:ak.morse,partial:item.partial});return}
+  if(ak.tonesOnly)return; // dispatch beeps alone: nothing to transcribe; the call that follows is marked
   const prov=PROVIDERS[engine()],key=sttKey(),wav=encodeWav(item.audio);
   aiStatus('TRANSCRIBING');
   let res;
@@ -1560,7 +1613,7 @@ async function handleCloud(item){
   if(!res.text)return;
   {const mt=morseFromText(res.text);if(mt){await showCall(item,{text:mt.text,unc:new Set(),agree:true},{morse:mt,partial:item.partial});return}}
   const unc=new Set(res.unclear.flatMap(t=>wordsOf(t)).filter(w=>!COMMON_EN.has(w)&&w.length>2&&!/^\d/.test(w)));
-  await showCall(item,{text:res.text,unc,agree:!unc.size},{cloud:prov.name,partial:item.partial});
+  await showCall(item,{text:res.text,unc,agree:!unc.size},{cloud:prov.name,partial:item.partial,toned:ak.toned});
 }
 // one transcript line per radio call; partial results update it in place
 async function showCall(item,merged,info){
@@ -1672,7 +1725,7 @@ async function pumpDevice(){
   while(queue.length){
     if(queue.length>6)queue.splice(0,queue.length-6);
     const seg=queue.shift();
-    {const mc=morseDecode(seg.audio);if(mc){await showCall(seg,{text:mc.text,unc:new Set(),agree:true},{morse:mc,partial:seg.partial});continue}}
+    const ak=audioKind(seg);if(ak.morse){await showCall(seg,{text:ak.morse.text,unc:new Set(),agree:true},{morse:ak.morse,partial:seg.partial});continue}if(ak.tonesOnly)continue;
     const two=$('optDouble').checked&&queue.length<2;
     aiStatus(two?'HEARING (1 OF 2)':'HEARING');
     try{
@@ -1681,7 +1734,7 @@ async function pumpDevice(){
       if(two){aiStatus('HEARING (2 OF 2)');plain=cleanText(await asr(seg.audio.slice(),null))}
       const merged=two?reconcile(primed,plain):reconcile(primed,null);
       if(!merged)continue;
-      await showCall(seg,merged,{primed,plain,single:!two,partial:seg.partial});
+      await showCall(seg,merged,{primed,plain,single:!two,partial:seg.partial,toned:ak.toned});
     }catch(e){console.warn(e)}
   }
   pumping=false;aiStatus(modelReady?`LISTENING · ${modelKey.toUpperCase()} · ${modelDevice}`:'IDLE');
@@ -1868,7 +1921,7 @@ audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
    ================================================================ */
 function paintEngine(){
   const e=engine(),dev=e==='device';$('engine').value=e;
-  $('keyBox').style.display=dev?'none':'';$('deviceBox').style.display=dev?'':'none';
+  $('keyBox').style.display=dev?'none':'';
   if(!dev){const P=PROVIDERS[e],own=ownKey(e),shared=e==='groq'&&!own;$('sttKey').placeholder=shared?'Using the shared key. Paste your own (optional)':P.ph;$('sttKey').value=own?'••••••••••••':'';
     $('useShared').style.display=e==='groq'&&own?'':'none';
     $('engineNote').innerHTML=shared?`Using the site's built-in Groq key, so it works with no setup. It's shared by everyone using this site; if it runs into its daily limit, add your own free key from <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>.`:own?'Your own key is saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
@@ -1876,7 +1929,7 @@ function paintEngine(){
 }
 function paintUsage(){
   const a=used('stt:whisper-large-v3'),b=used('stt:whisper-large-v3-turbo'),c=used('ai');
-  $('usage').innerHTML=`Transcriptions: <b style="color:var(--text)">${a.toLocaleString()} / 2,000</b> main model${b?`, ${b.toLocaleString()} / 2,000 backup`:''} (backup takes over automatically)<br>AI address checks: <b style="color:var(--text)">${c.toLocaleString()} / ~500</b><br>Counts from this browser. The allowance refills continuously over 24 hours.`;
+  $('usage').innerHTML=`Used from this browser in the last 24 hours: <b style="color:var(--text)">${(a+b).toLocaleString()}</b> transcriptions and <b style="color:var(--text)">${c.toLocaleString()}</b> address checks.`;
 }
 function openSettings(){paintEngine();paintUsage();$('settingsDlg').showModal()}
 function openSetup(){if(!$('setupDlg').open)$('setupDlg').showModal();setTimeout(()=>$('setupKey').focus(),100)}
