@@ -111,13 +111,21 @@
     input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--cyan);border:3px solid #031018}
     .zrow{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap}
     .switch{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.4;color:#cfe3ec;cursor:pointer}
-    .switch input{width:20px;height:20px;accent-color:var(--cyan);flex:0 0 auto;margin:0}
+    .switch input{-webkit-appearance:none;appearance:none;position:relative;width:38px;height:22px;flex:0 0 auto;margin:0;border-radius:11px;background:#0b1e2b;border:1px solid #2f6580;cursor:pointer;transition:background .2s,border-color .2s}
+    .switch input::before{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#7d9cad;transition:transform .2s,background .2s}
+    .switch input:checked{background:#0e3a4a;border-color:var(--cyan)}
+    .switch input:checked::before{transform:translateX(16px);background:var(--cyan);box-shadow:0 0 8px #61dcff99}
     .switch small{display:block;color:var(--dim);font-size:11.5px}
     .linkbtn{min-height:30px;padding:0 8px;background:none;color:var(--cyan);font-size:11px}
     #zone.empty-zone .needloc{display:none}
 
-    .mapbar{position:fixed;z-index:800;right:var(--gap);bottom:calc(var(--gap) + 96px);display:flex;flex-direction:column;gap:7px}
-    .mapbar button{min-height:42px;min-width:42px;padding:0 11px;background:var(--glass);border:1px solid #2f6580;color:#dff5fc;box-shadow:0 6px 16px #0007;font-size:11px}
+    .mapbar{position:fixed;z-index:800;right:var(--gap);bottom:calc(var(--gap) + 34px);display:flex;flex-direction:column;align-items:stretch;gap:8px}
+    .mapbar button{display:flex;align-items:center;gap:9px;min-height:44px;padding:0 15px 0 12px;border-radius:11px;background:var(--glass);border:1px solid #2f6580;color:#dff5fc;box-shadow:0 8px 22px #0008;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10.5px;letter-spacing:.1em}
+    .mapbar button .ic{width:19px;height:19px;color:var(--cyan)}
+    .mapbar button:hover{filter:none;border-color:var(--cyan);background:#0b2232f0}
+    .locbtns button{display:flex;align-items:center;justify-content:center;gap:7px}
+    .locbtns .ic{width:15px;height:15px;color:var(--cyan)}
+    #geoBtn.on{border-color:var(--cyan);color:var(--cyan)}
     .leaflet-bottomright{bottom:var(--gap)!important;right:calc(var(--gap) - 10px)!important}
     .pick{display:none;position:fixed;inset:0;z-index:950;pointer-events:none}
     body.picking .pick{display:block}
@@ -147,8 +155,22 @@
     #zoneEdge{position:fixed;inset:0;z-index:2600;pointer-events:none;border:3px solid var(--red);box-shadow:inset 0 0 24px #ff4e5e55;display:none;animation:edge 2.4s ease-in-out infinite}
     body.zone-active #zoneEdge{display:block}
     @keyframes edge{50%{box-shadow:inset 0 0 6px #ff4e5e33}}
-    .play{min-height:0;width:26px;height:26px;padding:0;margin-top:6px;border-radius:50%;background:#102c3e;border:1px solid #35647c;color:#dff5fc;font-size:10px;display:grid;place-items:center}
-    .play.on{background:var(--cyan);color:#031018;border-color:var(--cyan)}
+    .play{min-height:0;width:30px;height:30px;padding:0;margin-top:7px;border-radius:8px;background:#0b1e2b;border:1px solid #2f6580;color:var(--cyan);display:grid;place-items:center;box-shadow:inset 0 0 0 1px #61dcff14;transition:border-color .15s,background .15s}
+    .play svg{width:15px;height:15px}
+    .play:hover{filter:none;border-color:var(--cyan);background:#0e2a3a}
+    .play.on{background:var(--cyan);color:#031018;border-color:var(--cyan);animation:playring 1.6s ease-out infinite}
+    @keyframes playring{0%{box-shadow:0 0 0 0 #61dcff88}100%{box-shadow:0 0 0 9px #61dcff00}}
+    .line.related{background:#0e2a3a;box-shadow:inset 3px 0 var(--cyan),inset 0 0 0 1px #61dcff40}
+    .line.related .t{color:var(--cyan)}
+    .code{border-bottom:1px dotted #61dcffaa;cursor:help;position:relative;outline:none}
+    .code:hover,.code:focus{color:var(--cyan)}
+    .code:hover::after,.code:focus::after{content:attr(data-m);position:absolute;z-index:20;left:-4px;top:calc(100% + 6px);width:max-content;max-width:230px;padding:7px 9px;border-radius:7px;background:#06131d;border:1px solid var(--line);box-shadow:0 10px 24px #000b;color:var(--text);font:600 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:0;white-space:normal;pointer-events:none}
+    .tag.type{background:#0e3a4a;border-color:#3b8fae;color:#bfefff}
+    .tag.code{background:#0b1e2b;border-color:#24485e;color:#a9c7d6;font-size:9.5px;font-weight:650;letter-spacing:.01em;padding:3px 7px;cursor:help}
+    .tag.code b{color:var(--cyan);font-weight:850;margin-right:3px;letter-spacing:.04em}
+    .morse{font:800 16px ui-monospace,Menlo,monospace;letter-spacing:.18em;color:#bfefff}
+    .mpat{display:block;margin-top:3px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.12em;color:var(--dim);overflow-wrap:anywhere}
+    .ic{width:16px;height:16px;flex:0 0 auto}
     .tag.chk{font-size:9px;padding:3px 6px;background:#0b231e;border-color:#245c48;color:#8fe3c2;cursor:help}
     .line.resolved{opacity:.62}
     .line.resolved .x{color:#b7cad3}
@@ -194,7 +216,7 @@
       .phead{min-height:40px;padding:4px 10px 6px 14px;border:0;cursor:pointer}
       #feedToggle{display:none}
       .mapbar{bottom:calc(var(--sheet) + 12px);right:var(--gap)}
-      .mapbar button{min-height:38px;font-size:10px;padding:0 10px}
+      .mapbar button{min-height:40px;font-size:10px;padding:0 12px 0 10px}
       .leaflet-bottomright{display:none}
       body.sheet-open #side,body.sheet-open .mapbar{display:none}
       .pickhint{top:calc(var(--top) + 12px)}
@@ -234,7 +256,7 @@
       <button type="button" id="zoneHead" aria-expanded="false" aria-controls="zoneBody" title="Change your alert zone"><span class="zl">YOUR ZONE</span><span class="where" id="where">Not set. Choose a spot to get alerts.</span><span id="radiusLbl">½ mi</span><span class="zc" id="zoneMore">CHANGE</span></button>
       <div id="zoneBody">
         <form id="searchForm" role="search"><input id="searchInput" type="search" placeholder="Search an address or cross streets" autocomplete="off" enterkeyhint="search" aria-label="Search address or cross streets">
-          <div class="locbtns"><button id="geoBtn" class="secondary" type="button" title="Use this device's GPS">◎ MY LOCATION</button><button id="pickBtn" class="secondary" type="button" title="Move the map to choose a spot">⌖ PICK ON MAP</button></div></form>
+          <div class="locbtns"><button id="geoBtn" class="secondary" type="button" title="Use this device's GPS and keep the zone on you"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 3.5 3.5 10.6l7.2 2.7 2.7 7.2z"/></svg>MY LOCATION</button><button id="pickBtn" class="secondary" type="button" title="Move the map to choose a spot"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.5s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10.5" r="2.3"/></svg>PICK ON MAP</button></div></form>
         <div class="results" id="results"></div>
         <div class="zsub needloc">ALERT RADIUS</div>
         <div class="seg needloc" id="radiusSeg">
@@ -242,7 +264,7 @@
         </div>
         <input id="radius" class="needloc" type="range" min="0.1" max="5" step="0.05" value="0.5" aria-label="Alert radius in miles">
         <div class="zrow needloc">
-          <label class="switch"><input type="checkbox" id="follow"><span>Follow me</span></label>
+          <label class="switch"><input type="checkbox" id="follow"><span>Follow my location<small>Zone moves with you</small></span></label>
           <button type="button" class="linkbtn" id="watchBtn">WATCHING <span id="watchN">0</span> STREETS ›</button>
         </div>
         <div class="zrow needloc" style="justify-content:flex-end;margin-top:4px"><button type="button" class="secondary" id="zoneDone" style="min-height:34px">DONE</button></div>
@@ -251,8 +273,8 @@
   </div>
 
   <div class="mapbar">
-    <button type="button" id="mbMe" title="Center the map on your zone"><span>MY ZONE</span></button>
-    <button type="button" id="mbAll" title="Fit every pinned call on the map"><span>ALL CALLS</span></button>
+    <button type="button" id="mbMe" title="Center the map on your zone"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/><path d="M12 1.8v3.4M12 18.8v3.4M1.8 12h3.4M18.8 12h3.4"/></svg><span>MY ZONE</span></button>
+    <button type="button" id="mbAll" title="Fit every pinned call on the map"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5v-5h5M20.5 8.5v-5h-5M3.5 15.5v5h5M20.5 15.5v5h-5"/><circle cx="9" cy="10" r="1.7" fill="currentColor" stroke="none"/><circle cx="15.2" cy="8.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="12.5" cy="15.2" r="1.7" fill="currentColor" stroke="none"/></svg><span>ALL CALLS</span></button>
   </div>
   <div class="pick"><div class="cross"></div><div class="pickhint glass">Move the map so the circle is on your spot</div>
     <div class="pickbar"><button type="button" id="pickCancel" class="secondary">CANCEL</button><button type="button" id="pickSet">SET MY ZONE HERE</button></div></div>
@@ -273,6 +295,7 @@
         </select>
         <div id="keyBox" style="margin-top:8px">
           <div class="row"><input id="sttKey" type="password" placeholder="Paste API key" autocomplete="off"><button class="secondary fit" id="sttKeySave" type="button">SAVE</button></div>
+          <button class="linkbtn" id="useShared" type="button" style="display:none;padding:0;margin-top:4px">USE THE SHARED KEY INSTEAD</button>
           <div class="mnote" id="engineNote"></div>
         </div>
         <div id="deviceBox" style="margin-top:8px;display:none">
@@ -351,18 +374,118 @@ const KINDS=[
  [/\b(11[- ]?8[0-3]|collision|crash|t[- ]?bone|rollover|vehicle (?:vs|versus)|hit and run|20001|20002|accident)\b/i,'COLLISION'],
  [/\b(structure fire|vehicle fire|vegetation fire|brush fire|smoke|flames|fire alarm)\b/i,'FIRE'],
  [/\b(shots? fired|gun|firearm|weapon|knife|stabb\w*|246|245|417)\b/i,'WEAPON'],
- [/\b(domestic|273\.?5|415|disturbance|fight|argument|yelling)\b/i,'DISTURBANCE'],
+ [/\b(domestic|273\.?5)\b/i,'DOMESTIC'],[/\b(415|disturbance|fight|argument|yelling|noise|loud music|party|barking)\b/i,'DISTURBANCE / NOISE'],
  [/\b(211|robbery)\b/i,'ROBBERY'],[/\b(459|burglary|break[- ]in)\b/i,'BURGLARY'],
  [/\b(484|488|10851|theft|stolen|shoplift\w*)\b/i,'THEFT'],[/\b(23152|23153|dui|drunk driver|reckless)\b/i,'DUI / RECKLESS'],
- [/\b(medical|unconscious|not breathing|overdose|chest pain|seizure|ambulance)\b/i,'MEDICAL'],
- [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],[/\b(welfare check|5150|missing)\b/i,'WELFARE CHECK'],
+ [/\b(medical|unconscious|not breathing|difficulty breathing|overdose|chest pain|abdominal pain|seizure|ambulance|fall victim|fell|bleeding|patient|stroke|cardiac|lift assist|BLS|ALS)\b/i,'MEDICAL'],
+ [/\b(suspicious|prowler|10[- ]?66)\b/i,'SUSPICIOUS'],[/\b(5150|mental health|suicidal)\b/i,'MENTAL HEALTH'],[/\b(welfare check|check the welfare|missing)\b/i,'WELFARE CHECK'],[/\b(traffic hazard|debris|in the roadway|disabled vehicle|stalled|road closed)\b/i,'TRAFFIC HAZARD'],[/\b(dog|cat|horse|cattle|cow|animal)\b/i,'ANIMAL'],
  [/\b(alarm)\b/i,'ALARM'],[/\b(trespass\w*|602)\b/i,'TRESPASS'],[/\b(vandal\w*|594|graffiti)\b/i,'VANDALISM'],
  [/\b(pursuit|fleeing|evading|2800)\b/i,'PURSUIT'],[/\b(traffic stop|11[- ]?95|10[- ]?38)\b/i,'TRAFFIC STOP'],
 ];
+// California radio codes, penal/vehicle code sections and dispatch shorthand: [meaning, call type or null, source]
+const CODE_SRC={t:'10-code (meanings vary a little by agency)',e:'CHP 11-code',c:'Response code',p:'California Penal Code section',v:'California Vehicle Code section',h:'Health & Safety Code section',w:'Welfare & Institutions Code section',a:'Radio shorthand'};
+const CODES={
+ '10-1':['Poor radio reception',null,'t'],'10-2':['Good radio reception',null,'t'],'10-3':['Stop transmitting',null,'t'],'10-4':['Acknowledged, OK',null,'t'],'10-5':['Relay the message',null,'t'],'10-6':['Busy, stand by',null,'t'],'10-7':['Out of service',null,'t'],'10-8':['In service, available for calls',null,'t'],'10-9':['Repeat your last message',null,'t'],
+ '10-12':['Stand by; visitors or officials present',null,'t'],'10-13':['Weather and road conditions',null,'t'],'10-15':['Prisoner in custody',null,'t'],'10-19':['Returning to the station',null,'t'],'10-20':['Location',null,'t'],'10-21':['Call by phone',null,'t'],'10-22':['Disregard',null,'t'],'10-23':['Arrived at scene / stand by',null,'t'],
+ '10-27':["Driver's license check",null,'t'],'10-28':['Vehicle registration check',null,'t'],'10-29':['Check for wants or warrants',null,'t'],'10-31':['Crime in progress',null,'t'],'10-32':['Person with a gun','WEAPON','t'],'10-33':['Emergency, clear the radio channel',null,'t'],'10-35':['Confidential information',null,'t'],'10-36':['Correct time',null,'t'],
+ '10-37':['Suspicious vehicle','SUSPICIOUS','t'],'10-38':['Traffic stop','TRAFFIC STOP','t'],'10-39':['Respond urgently, lights and siren',null,'t'],'10-40':['Respond silently, no lights or siren',null,'t'],'10-41':['Starting shift',null,'t'],'10-42':['Ending shift',null,'t'],'10-49':['Traffic signal out','TRAFFIC HAZARD','t'],
+ '10-50':['Traffic collision','COLLISION','t'],'10-51':['Tow truck needed',null,'t'],'10-52':['Ambulance needed','MEDICAL','t'],'10-53':['Road blocked','TRAFFIC HAZARD','t'],'10-54':['Livestock on the road','TRAFFIC HAZARD','t'],'10-55':['Intoxicated driver','DUI / RECKLESS','t'],'10-56':['Intoxicated pedestrian','DISTURBANCE','t'],'10-57':['Hit and run','COLLISION','t'],
+ '10-62':['Reply to message',null,'t'],'10-66':['Suspicious person','SUSPICIOUS','t'],'10-70':['Fire alarm','FIRE','t'],'10-71':['Advise nature of fire','FIRE','t'],'10-79':['Notify the coroner','DEATH','t'],'10-80':['Vehicle pursuit','PURSUIT','t'],'10-87':['Pick up / meet',null,'t'],'10-97':['Arrived on scene',null,'t'],'10-98':['Assignment complete',null,'t'],
+ '11-10':['Take a report',null,'e'],'11-24':['Abandoned vehicle','TRAFFIC HAZARD','e'],'11-25':['Traffic hazard','TRAFFIC HAZARD','e'],'11-26':['Disabled vehicle','TRAFFIC HAZARD','e'],'11-41':['Ambulance needed','MEDICAL','e'],'11-42':['No ambulance needed',null,'e'],'11-44':['Fatality, coroner needed','DEATH','e'],'11-48':['Provide transportation',null,'e'],
+ '11-54':['Suspicious vehicle','SUSPICIOUS','e'],'11-79':['Collision, ambulance responding','COLLISION','e'],'11-80':['Collision with major injuries','COLLISION','e'],'11-81':['Collision with minor injuries','COLLISION','e'],'11-82':['Collision, property damage only','COLLISION','e'],'11-83':['Collision, no details yet','COLLISION','e'],
+ '11-84':['Direct traffic',null,'e'],'11-85':['Tow truck needed',null,'e'],'11-94':['Pedestrian stop','SUSPICIOUS','e'],'11-95':['Traffic stop','TRAFFIC STOP','e'],'11-96':['Checking a suspicious vehicle','SUSPICIOUS','e'],'11-97':['Time and security check',null,'e'],'11-98':['Meet another unit',null,'e'],'11-99':['Officer needs help, emergency','OFFICER NEEDS HELP','e'],
+ 'code 1':['Acknowledge / respond when convenient',null,'c'],'code 2':['Urgent, no lights or siren',null,'c'],'code 3':['Emergency, lights and siren',null,'c'],'code 4':['No further help needed',null,'c'],'code 5':['Stakeout, keep other units away',null,'c'],'code 6':['Out of the vehicle to investigate',null,'c'],'code 7':['Meal break',null,'c'],
+ '148':['Resisting or obstructing an officer',null,'p'],'187':['Homicide','HOMICIDE','p'],'207':['Kidnapping','KIDNAPPING','p'],'211':['Robbery','ROBBERY','p'],'215':['Carjacking','ROBBERY','p'],'240':['Assault','ASSAULT','p'],'242':['Battery','ASSAULT','p'],'243':['Battery causing injury','ASSAULT','p'],'245':['Assault with a deadly weapon','WEAPON','p'],'246':['Shooting at an occupied home or vehicle','WEAPON','p'],
+ '261':['Rape','SEX CRIME','p'],'273.5':['Domestic violence','DOMESTIC','p'],'273a':['Child endangerment','CHILD WELFARE','p'],'314':['Indecent exposure','SEX CRIME','p'],'374':['Illegal dumping',null,'p'],'404':['Riot','DISTURBANCE','p'],'415':['Disturbance: fight, noise or loud person','DISTURBANCE / NOISE','p'],'417':['Brandishing a weapon','WEAPON','p'],'422':['Criminal threats','THREATS','p'],
+ '451':['Arson','FIRE','p'],'459':['Burglary','BURGLARY','p'],'470':['Forgery','FRAUD','p'],'484':['Theft','THEFT','p'],'487':['Grand theft','THEFT','p'],'488':['Petty theft','THEFT','p'],'496':['Receiving stolen property','THEFT','p'],'530.5':['Identity theft','FRAUD','p'],'537':['Not paying a restaurant or hotel bill','FRAUD','p'],'594':['Vandalism','VANDALISM','p'],'597':['Animal cruelty','ANIMAL','p'],
+ '602':['Trespassing','TRESPASS','p'],'647f':['Drunk in public','DISTURBANCE','p'],'653m':['Harassing phone calls','THREATS','p'],'5150':['Mental health hold (danger to self or others)','MENTAL HEALTH','w'],'5585':['Juvenile mental health hold','MENTAL HEALTH','w'],
+ '10851':['Vehicle theft','THEFT','v'],'12500':["Driving without a license",'TRAFFIC STOP','v'],'14601':['Driving on a suspended license','TRAFFIC STOP','v'],'20001':['Hit and run with injury','COLLISION','v'],'20002':['Hit and run, property damage','COLLISION','v'],'23103':['Reckless driving','DUI / RECKLESS','v'],'23152':['Driving under the influence','DUI / RECKLESS','v'],'23153':['DUI causing injury','DUI / RECKLESS','v'],
+ '11350':['Drug possession','DRUGS','h'],'11377':['Methamphetamine possession','DRUGS','h'],'11550':['Under the influence of drugs','DRUGS','h'],
+ 'BLS':['Basic Life Support ambulance (EMT level)','MEDICAL','a'],'ALS':['Advanced Life Support (paramedic level)','MEDICAL','a'],'MCI':['Mass-casualty incident','MEDICAL','a'],'RP':['Reporting party: the person who called',null,'a'],'GOA':['Gone on arrival',null,'a'],'UTL':['Unable to locate',null,'a'],'TC':['Traffic collision','COLLISION','a'],'DOA':['Dead on arrival','DEATH','a'],
+ 'ETA':['Estimated time of arrival',null,'a'],'CHP':['California Highway Patrol',null,'a'],'ADW':['Assault with a deadly weapon','WEAPON','a'],'BOLO':['Be on the lookout',null,'a'],'ATL':['Attempt to locate',null,'a'],'GSW':['Gunshot wound','WEAPON','a'],'DUI':['Driving under the influence','DUI / RECKLESS','a'],'LKA':['Last known address',null,'a'],'CPR':['Cardiopulmonary resuscitation in progress','MEDICAL','a'],
+ 'calcord':['Statewide mutual-aid radio channel shared by agencies',null,'a'],'tac':['Tactical radio channel for the incident',null,'a'],
+};
+const CODE_COMPACT=new Set(['11-24','11-25','11-26','11-41','11-44','11-79','11-80','11-81','11-82','11-83','11-85','11-95','11-96','11-98','11-99']);
+const NOT_CODE_BEFORE=/\b(room|rm|bed|beds|suite|ste|apartment|apt|unit|space|gate|cell|bay|pod|door|floor|lot|building|bldg|ward|wing|hall|engine|medic|truck|battalion|squad|rescue|car|badge|case|ambulance|box|station|channel|number|no|mile|marker|exit|highway|hwy|route|interstate|us|sr|ca)\s*#?$/i;
+// Every code in a transcript, in order: {key, text, meaning, type, src, at}
+function codesIn(text,locWords){
+  const out=[],seen=new Set(),lw=new Set((locWords||[]).map(String));
+  const add=(key,str,at,num)=>{const c=CODES[key];if(!c||seen.has(key))return;
+    if(num){if(lw.has(str.replace(/[^0-9a-z.]/gi,'').toLowerCase()))return;if(NOT_CODE_BEFORE.test(text.slice(Math.max(0,at-14),at)))return;
+      const after=text.slice(at+str.length,at+str.length+24);if(/^\s+(block|hundred|feet|ft|miles?|minutes?|seconds?|years?|pounds?|degrees|mph|[a-z]+\s+(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|court|ct|boulevard|blvd|place|circle)\b)/i.test(after))return}
+    seen.add(key);out.push({key,text:str,meaning:c[0],type:c[1],src:CODE_SRC[c[2]],at})};
+  let m;
+  const re1=/\b(1[01])[- ](\d{1,2})\b(?!-)/g;while((m=re1.exec(text)))add(`${m[1]}-${+m[2]}`,m[0],m.index);
+  const re2=/(^|[^\d-])(11)(\d{2})\b(?![-\d])/g;while((m=re2.exec(text))){const k=`11-${m[3]}`;if(CODE_COMPACT.has(k))add(k,m[2]+m[3],m.index+m[1].length,true)}
+  const re3=/\bcode[- ]([1-7])\b/gi;while((m=re3.exec(text)))add('code '+m[1],m[0],m.index);
+  const re4=/(^|[^\d.-])(\d{3,5}(?:\.\d)?)(?:\s?\(?([af])\)?)?(?![\d-])/gi;
+  while((m=re4.exec(text))){const n=m[2],suf=(m[3]||'').toLowerCase(),at=m.index+m[1].length;
+    if(suf&&CODES[n+suf])add(n+suf,m[0].slice(m[1].length),at,true);else if(CODES[n])add(n,n,at,true)}
+  const re5=/\b(BLS|ALS|MCI|RP|GOA|UTL|TC|DOA|ETA|CHP|ADW|BOLO|ATL|GSW|DUI|LKA|CPR)\b/g;while((m=re5.exec(text)))add(m[1],m[1],m.index);
+  const re6=/\b(calcord|tac)\b/gi;while((m=re6.exec(text)))add(m[1].toLowerCase(),m[0],m.index);
+  return out.sort((a,b)=>a.at-b.at);
+}
+// Morse code: radio IDs and tones keyed on and off. Finds a steady tone, times the beeps and decodes them.
+const MORSE={'.-':'A','-...':'B','-.-.':'C','-..':'D','.':'E','..-.':'F','--.':'G','....':'H','..':'I','.---':'J','-.-':'K','.-..':'L','--':'M','-.':'N','---':'O','.--.':'P','--.-':'Q','.-.':'R','...':'S','-':'T','..-':'U','...-':'V','.--':'W','-..-':'X','-.--':'Y','--..':'Z',
+ '-----':'0','.----':'1','..---':'2','...--':'3','....-':'4','.....':'5','-....':'6','--...':'7','---..':'8','----.':'9','.-.-.-':'.','--..--':',','..--..':'?','-..-.':'/','-...-':'=','.-.-.':'+','-....-':'-','...---...':'SOS'};
+function goertzel(a,s,n,f,sr){const w=2*Math.PI*f/sr,c=2*Math.cos(w);let p1=0,p2=0;for(let i=s;i<s+n;i++){const p=a[i]+c*p1-p2;p2=p1;p1=p}return(p1*p1+p2*p2-c*p1*p2)/(n*n)}
+function morseDecode(a,sr=16000){
+  if(!a||a.length<sr*0.6)return null;
+  const W=Math.round(sr*0.012),H=Math.round(sr*0.004),nF=Math.floor((a.length-W)/H);if(nF<50)return null;
+  // 1) the strongest steady pitch between 350 and 1300 Hz
+  const en=new Float32Array(nF);for(let f=0;f<nF;f++){let q=0;for(let i=f*H;i<f*H+W;i++)q+=a[i]*a[i];en[f]=q/W}
+  const sorted=Float32Array.from(en).sort(),hiE=sorted[Math.floor(nF*0.9)];if(hiE<1e-5)return null;
+  const loudF=[];for(let f=0;f<nF;f++)if(en[f]>hiE*0.4)loudF.push(f);if(loudF.length<10)return null;
+  const probe=loudF.filter((_,i)=>i%Math.max(1,Math.floor(loudF.length/60))===0);
+  let best=0,f0=0;for(let fr=350;fr<=1300;fr+=10){let s=0;for(const f of probe)s+=goertzel(a,f*H,W*2>a.length-f*H?W:W,fr,sr);if(s>best){best=s;f0=fr}}
+  // 2) how much of the loud audio is that one tone (speech spreads across many pitches)
+  let tone=0,tot=0;for(const f of probe){tone+=goertzel(a,f*H,W,f0,sr)+goertzel(a,f*H,W,f0-25,sr)*0.5+goertzel(a,f*H,W,f0+25,sr)*0.5;tot+=en[f]}
+  const purity=tot>0?tone*2/tot:0;if(purity<0.55)return null;
+  // 3) on/off envelope at that pitch
+  const env=new Float32Array(nF);for(let f=0;f<nF;f++)env[f]=goertzel(a,f*H,W,f0,sr);
+  const es=Float32Array.from(env).sort(),lo=es[Math.floor(nF*0.15)],hi=es[Math.floor(nF*0.92)];if(hi<lo*8)return null;
+  const th=Math.sqrt(Math.max(lo,1e-12)*hi);
+  const on=Array.from(env,v=>v>th);
+  for(let f=1;f<nF-1;f++)if(on[f-1]===on[f+1]&&on[f]!==on[f-1])on[f]=on[f-1]; // remove single-frame blips
+  const runs=[];let cur=on[0],len=0;for(const v of on){if(v===cur)len++;else{runs.push([cur,len*H/sr]);cur=v;len=1}}runs.push([cur,len*H/sr]);
+  while(runs.length&&!runs[0][0])runs.shift();while(runs.length&&!runs[runs.length-1][0])runs.pop();
+  const marks=runs.filter(r=>r[0]).map(r=>r[1]);if(marks.length<3||marks.length>400)return null;
+  // 4) dot length: the shorter cluster of beep lengths (or the short gaps when all beeps are alike)
+  const ms=[...marks].sort((x,y)=>x-y),gaps=runs.filter(r=>!r[0]).map(r=>r[1]).sort((x,y)=>x-y);
+  let unit=ms[Math.floor(ms.length*0.2)];
+  if(ms[ms.length-1]<unit*2&&gaps.length){const g=gaps[Math.floor(gaps.length*0.2)];if(g<unit*0.7)unit=g}
+  if(unit<0.025||unit>0.25)return null; // ~5 to 48 words per minute
+  // beeps must come in one or two lengths; speech syllables don't
+  if(marks.some(m=>m>unit*5))return null;
+  let sym='',out='',pattern='';
+  for(const[isOn,d]of runs){
+    if(isOn)sym+=d>unit*2?'-':'.';
+    else if(d>unit*5){out+=(MORSE[sym]||'?')+' ';pattern+=sym+' / ';sym=''}
+    else if(d>unit*2){out+=MORSE[sym]||'?';pattern+=sym+' ';sym=''}
+  }
+  if(sym){out+=MORSE[sym]||'?';pattern+=sym}
+  out=out.replace(/\s+/g,' ').trim();const chars=out.replace(/ /g,'');
+  if(chars.length<2||(chars.match(/\?/g)||[]).length>chars.length*0.3)return null;
+  if(new Set(chars).size<2||!/\./.test(pattern)||!/-/.test(pattern))return null; // plain repeated beeps are alert tones, not Morse
+  return{text:out,pattern:pattern.trim(),wpm:Math.round(1.2/unit),hz:f0};
+}
+// dots and dashes written out in a transcript (". . . - - -", "dit dah")
+function morseFromText(t){
+  let s=t.trim().toLowerCase();
+  if(/\b(dit|dah|dot|dash)/.test(s)){ // spoken: "dit dit dit, dah dah dah"
+    s=s.replace(/[.!?]+$/,'').replace(/\b(dits?|dots?)\b/g,'.').replace(/\b(dahs?|dashe?s?)\b/g,'-');if(/[a-z0-9]/.test(s))return null;
+    s=s.split(/[,;]+/).map(g=>g.replace(/[^.\-]/g,'')).filter(Boolean).join(' ');
+  }else s=s.replace(/[·•]/g,'.').replace(/[–—_]/g,'-');
+  if(!/^[.\-\s/|,]+$/.test(s)||(s.match(/[.-]/g)||[]).length<3)return null;
+  const words=s.split(/\s*[/|]\s*|\s{3,}/).map(w=>w.trim().split(/[\s,]+/).filter(Boolean).map(c=>MORSE[c]||'?').join(''));
+  const out=words.join(' ').trim();if(!out||(out.match(/\?/g)||[]).length>out.replace(/ /g,'').length*0.3)return null;
+  return{text:out,pattern:s.replace(/\s+/g,' ').trim()};
+}
+
 // Everyday and radio words that should never be "corrected" into a street name.
 const COMMON_EN=new Set(('the be to of and a in that have i it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us is are was were been has had did said going got yeah yes okay ok copy units unit clear code respond responding en route enroute arrived arrival scene subject suspect male female vehicle car truck white black blue red green silver gray grey tan brown wearing shirt hoodie jacket pants shorts hat last seen heading northbound southbound eastbound westbound north south east west party reporting injuries unknown possible medical fire engine medic medics ambulance sheriff deputy officer police dispatch county city station traffic collision alarm check welfare stolen warrant license plate negative affirmative standby stand cover backup need needs area block address location near front behind inside outside house home apartment lot parking store school park beach bridge freeway highway road street avenue drive lane court place boulevard circle ramp exit mile miles feet left right side corner intersection three four five six seven eight nine ten eleven twelve hundred thousand adult juvenile kid child man woman guy lady person dog phone call called caller advised advise states stating report reports refusing transport hospital jail cite cited arrest custody detained contact contacted attempt attempting coming leave leaving fled running walking driving stopped stop parked blocking lanes roadway shoulder median off under around toward towards via per while still again same another each every few more less much many very too here where why whom whose those thank thanks please sir roger received checking info information description update updated status available busy break priority emergency urgent cancel canceled disregard correction repeat male female').split(' '));
 // Dispatch vocabulary used to prime the speech model (local names it otherwise mishears).
-const PROMPT_BASE='San Luis Obispo County sheriff, police and fire dispatch. Units, copy, 10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150, code 3, RP.';
+const PROMPT_BASE='San Luis Obispo County sheriff, police and fire dispatch. Units, copy, 10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150, Code 2, Code 3, Code 4, RP, BLS, ALS, French Hospital, Sierra Vista, Twin Cities.';
 const PROMPT_TOWNS='Paso Robles, Atascadero, Templeton, Morro Bay, Los Osos, Cambria, Pismo Beach, Grover Beach, Arroyo Grande, Nipomo, Oceano, Avila Beach.';
 const PROMPT_STREETS=['Higuera','Marsh','Santa Rosa','Foothill','Broad','Johnson','Madonna','Los Osos Valley Road','Tank Farm','El Camino Real','Grand Avenue','Niblick','Morro Road','Halcyon','Oak Park','Quintana'];
 
@@ -421,7 +544,9 @@ async function loadStreetData(){
 let COUNTY=null;
 function inCountyPt(lat,lon){if(!COUNTY)return lat>BBOX.s&&lat<BBOX.n&&lon>BBOX.w&&lon<BBOX.e;let c=false;for(let i=0,j=COUNTY.length-1;i<COUNTY.length;j=i++){const a=COUNTY[i],b=COUNTY[j];if((a[0]>lat)!==(b[0]>lat)&&lon<(b[1]-a[1])*(lat-a[0])/(b[0]-a[0])+a[1])c=!c}return c}
 // Places dispatch names without an address (coordinates from OpenStreetMap)
-const LANDMARKS=[["Cuesta Grade", "cuesta (grade|pass|summit)", 35.3489, -120.6309, 1], ["Madonna Inn", "madonna inn", 35.267, -120.6752, 0], ["Cal Poly", "cal poly", 35.3075, -120.6646, 1], ["Cuesta College", "cuesta college", 35.329, -120.7406, 0], ["Morro Rock", "morro rock", 35.3697, -120.8677, 0], ["Hearst Castle", "hearst castle", 35.6487, -121.1858, 0], ["Pismo Pier", "pismo (beach )?pier", 35.1383, -120.6446, 0], ["Avila Pier", "avila (beach )?pier", 35.1766, -120.7345, 0], ["Oceano Dunes", "oceano dunes|the dunes", 35.0467, -120.6125, 1], ["Santa Margarita Lake", "santa margarita lake", 35.3286, -120.4824, 1], ["Diablo Canyon", "diablo canyon|diablo power", 35.2118, -120.8547, 1], ["Men's Colony", "men'?s colony|\\bcmc\\b", 35.324, -120.7025, 0], ["SLO Airport", "(slo|san luis|county) airport", 35.2375, -120.6433, 0], ["Paso Airport", "paso (robles )?airport", 35.6756, -120.6306, 0], ["Atascadero State Hospital", "atascadero state hospital|state hospital", 35.4639, -120.6348, 0], ["Sierra Vista Hospital", "sierra vista", 35.2924, -120.6659, 0], ["Twin Cities Hospital", "twin cities", 35.5551, -120.7201, 0], ["Arroyo Grande Hospital", "arroyo grande (community )?hospital", 35.1133, -120.5904, 0], ["Camp San Luis", "camp san luis", 35.338, -120.6982, 1], ["Camp Roberts", "camp roberts", 35.7908, -120.7782, 1], ["Mid-State Fair", "mid-? ?state fair|event center|fairgrounds", 35.6381, -120.6875, 0], ["County Jail", "county jail|\\bthe jail\\b", 35.3208, -120.7272, 0], ["Laguna Lake", "laguna lake", 35.2655, -120.6906, 1], ["Montana de Oro", "montana de oro|montaña de oro", 35.2938, -120.8616, 1], ["Shell Beach", "shell beach", 35.1553, -120.6724, 1], ["Mission San Luis Obispo", "mission san luis|mission plaza", 35.2808, -120.665, 0], ["Mission San Miguel", "mission san miguel", 35.7444, -120.6979, 0], ["Spooner's Cove", "spooner'?s cove", 35.2744, -120.8883, 0], ["Dinosaur Caves", "dinosaur caves", 35.1537, -120.6646, 0], ["Port San Luis", "port san luis|harford pier", 35.1714, -120.7565, 0], ["Bishop Peak", "bishop'?s? peak", 35.3023, -120.6977, 1], ["Cerro San Luis", "cerro san luis|madonna mountain", 35.2828, -120.6804, 1], ["Whale Rock", "whale rock", 35.4583, -120.8691, 1], ["Lake Nacimiento", "lake nacimiento|nacimiento lake(?! drive)", 35.7305, -120.8694, 1], ["Carrizo Plain", "carrizo plain", 35.1146, -119.7234, 1], ["Pozo", "\\bpozo\\b", 35.3037, -120.3762, 1], ["Parkfield", "\\bparkfield\\b", 35.8996, -120.4326, 1], ["Cholame", "\\bcholame\\b", 35.7239, -120.2965, 1], ["Shandon", "\\bshandon\\b", 35.653, -120.3818, 1]].map(([name,rx,lat,lon,area])=>({name,re:new RegExp("\\b("+rx+")(?!\\s+(road|rd|street|st|avenue|ave|drive|dr|lane|ln|way|boulevard|blvd|court|ct|place|circle|highway|hwy)\\b)","i"),lat,lon,area:!!area}));
+const LANDMARKS=[["Cuesta Grade", "cuesta (grade|pass|summit)", 35.3489, -120.6309, 1], ["Madonna Inn", "madonna inn", 35.267, -120.6752, 0], ["Cal Poly", "cal poly", 35.3075, -120.6646, 1], ["Cuesta College", "cuesta college", 35.329, -120.7406, 0], ["Morro Rock", "morro rock", 35.3697, -120.8677, 0], ["Hearst Castle", "hearst castle", 35.6487, -121.1858, 0], ["Pismo Pier", "pismo (beach )?pier", 35.1383, -120.6446, 0], ["Avila Pier", "avila (beach )?pier", 35.1766, -120.7345, 0], ["Oceano Dunes", "oceano dunes|the dunes", 35.0467, -120.6125, 1], ["Santa Margarita Lake", "santa margarita lake", 35.3286, -120.4824, 1], ["Diablo Canyon", "diablo canyon|diablo power", 35.2118, -120.8547, 1], ["Men's Colony", "men'?s colony|\\bcmc\\b", 35.324, -120.7025, 0], ["SLO Airport", "(slo|san luis|county) airport", 35.2375, -120.6433, 0], ["Paso Airport", "paso (robles )?airport", 35.6756, -120.6306, 0], ["Atascadero State Hospital", "atascadero state hospital|state hospital", 35.4639, -120.6348, 0], ["French Hospital", "french (hospital|medical)|(?<=\\b(?:to|at|from|into|for|by|leaving|left)\\s)french\\b(?!\\s+(camp|fr\\w*|toast|doors?|quarter|bread))", 35.2779, -120.6515, 0, 1], ["Sierra Vista Hospital", "sierra vista|(?<=\\b(?:going to|transport(?:ing|ed)? to|en ?route to|headed to|heading to|from)\\s)sierra\\b", 35.2924, -120.6659, 0, 1], ["Twin Cities Hospital", "twin cities|(?<=\\b(?:going to|transport(?:ing|ed)? to|en ?route to|headed to|heading to|at|from)\\s)twin\\b", 35.5551, -120.7201, 0, 1], ["Arroyo Grande Hospital", "arroyo grande (community )?hospital|\\bag hospital", 35.1133, -120.5904, 0, 1], ["Marian Hospital", "marian (regional|medical|hospital)|(?<=\\b(?:going to|transport(?:ing|ed)? to|en ?route to|headed to|heading to)\\s)marian\\b", 34.9510, -120.4133, 0, 1], ["Camp San Luis", "camp san luis", 35.338, -120.6982, 1], ["Camp Roberts", "camp roberts", 35.7908, -120.7782, 1], ["Mid-State Fair", "mid-? ?state fair|event center|fairgrounds", 35.6381, -120.6875, 0], ["County Jail", "county jail|\\bthe jail\\b", 35.3208, -120.7272, 0], ["Laguna Lake", "laguna lake", 35.2655, -120.6906, 1], ["Montana de Oro", "montana de oro|montaña de oro", 35.2938, -120.8616, 1], ["Shell Beach", "shell beach", 35.1553, -120.6724, 1], ["Mission San Luis Obispo", "mission san luis|mission plaza", 35.2808, -120.665, 0], ["Mission San Miguel", "mission san miguel", 35.7444, -120.6979, 0], ["Spooner's Cove", "spooner'?s cove", 35.2744, -120.8883, 0], ["Dinosaur Caves", "dinosaur caves", 35.1537, -120.6646, 0], ["Port San Luis", "port san luis|harford pier", 35.1714, -120.7565, 0], ["Bishop Peak", "bishop'?s? peak", 35.3023, -120.6977, 1], ["Cerro San Luis", "cerro san luis|madonna mountain", 35.2828, -120.6804, 1], ["Whale Rock", "whale rock", 35.4583, -120.8691, 1], ["Lake Nacimiento", "lake nacimiento|nacimiento lake(?! drive)", 35.7305, -120.8694, 1], ["Carrizo Plain", "carrizo plain", 35.1146, -119.7234, 1], ["Pozo", "\\bpozo\\b", 35.3037, -120.3762, 1], ["Parkfield", "\\bparkfield\\b", 35.8996, -120.4326, 1], ["Cholame", "\\bcholame\\b", 35.7239, -120.2965, 1], ["Shandon", "\\bshandon\\b", 35.653, -120.3818, 1]].map(([name,rx,lat,lon,area,hosp])=>({name,re:new RegExp("\\b("+rx+")(?!\\s+(road|rd|street|st|avenue|ave|drive|dr|lane|ln|way|boulevard|blvd|court|ct|place|circle|highway|hwy)\\b)","i"),lat,lon,area:!!area,hosp:!!hosp}));
+// a place-name that should win over a weak reading (no pin, approximate, street only, or a highway with nothing else)
+const weakGeo=geo=>!geo||!geo.g.precise||geo.loc.type==='street'||/^(US|CA) \d+$/.test(geo.g.label||geo.loc.label||'');
 const landmarkIn=text=>LANDMARKS.find(l=>l.re.test(text))||null;
 const landmarkGeo=(l,text)=>({g:{lat:l.lat,lon:l.lon,precise:!l.area,label:l.name},loc:{label:l.name,type:'landmark',words:text?locWordsFor(text,[l.name,(text.match(l.re)||[''])[0]]):l.name.toLowerCase().split(' ')}});
 // Named roads in neighboring counties, offered to the AI check when a road isn't in SLO County
@@ -516,10 +641,13 @@ function wordsToDigits(tokens){
   }
   return out;
 }
+const ROOMW=new Set('room rm bed beds suite ste apartment apt space gate cell bay pod door floor building bldg ward wing hall'.split(' '));
 function tokenize(text){
   const raw=text.toLowerCase().replace(/['’]/g,'').replace(/(\d),(\d)/g,'$1$2').replace(/&/g,' and ').replace(/[,.;:!?]+/g,' | ').replace(/[^a-z0-9|\- ]/g,' ').split(/\s+/).filter(Boolean);
   const split=[];for(const t of raw){if(/^\d+-\d+$/.test(t))split.push(t);else split.push(...t.split('-').filter(Boolean))}
   const out=[];let dig=false;for(const t of wordsToDigits(split)){if(/^\d$/.test(t)&&dig&&/^\d{1,4}$/.test(out[out.length-1]))out[out.length-1]+=t;else out.push(t);dig=/^\d$/.test(t)}
+  // "room 101", "bed 2", "gate 3": numbers inside a building aren't addresses or highways
+  for(let i=0;i<out.length-1;i++)if(ROOMW.has(out[i])&&/^\d+[a-z]?$/.test(out[i+1]))out[i+1]='no'+out[i+1];
   return out;
 }
 function matchStreetAt(tok,i){
@@ -568,7 +696,7 @@ function extract(text){
     }
     const placeCue=['on','at','near','off','from','toward','towards','to','of'].includes(tok[i-1])||!!(m&&m.dir);
     const major=m&&(SD.baseRank.get(m.base)??9)<=2;
-    if(first.hwy||(m&&(m.hasSuffix||(placeCue&&(!m.common||m.dir)&&!m.fuzzy&&major)))){found.push({type:'street',s:S(first),label:S(first).canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=i+first.len-1}
+    if(first.hwy||(m&&(m.hasSuffix||(placeCue&&(!m.common||m.dir)&&!m.fuzzy&&major)))){found.push({type:'street',s:S(first),label:S(first).canon,score:first.hwy?0.8:1,words:first.words,exact:!first.hwy&&!m.fuzzy});take(i,first.len);i=i+first.len-1}
   }
   if(!found.some(f=>f.type==='address'||f.type==='cross')){
     const h=found.find(f=>f.type==='street'&&f.s.hwy),st=found.find(f=>f.type==='street'&&!f.s.hwy);
@@ -577,7 +705,14 @@ function extract(text){
   found.sort((a,b)=>b.score-a.score);
   return{locs:found,town};
 }
-const kindsOf=text=>KINDS.filter(([re])=>re.test(text)).map(([,l])=>l).slice(0,2);
+// Call type: from the codes first ("11-82", "415"), then from words ("collision", "noise")
+function kindsOf(text,locWords){
+  const out=[];for(const c of codesIn(text,locWords))if(c.type&&!out.includes(c.type))out.push(c.type);
+  if(out[0]==='BURGLARY'&&/\b459\s+(audible\s+|silent\s+)?alarm/i.test(text))out[0]='BURGLARY ALARM';
+  for(const[re,l]of KINDS)if(re.test(text)&&!out.includes(l))out.push(l);
+  return out.slice(0,2);
+}
+const locWordsOf=entry=>(entry.locs||[]).flatMap(l=>l.words||[]);
 
 /* ================================================================
    DOUBLE-CHECK: merge two hearings, then snap names to the street list
@@ -718,7 +853,9 @@ Output: {"text": string, "location": null | {"number": string|null, "street": st
 Rules:
 - "text": the transcript with only clear mishearings fixed (street/town names, unit IDs, codes). Keep every word and the punctuation, including the unit or town at the start; never remove, add or invent content.
 - Unit call signs are not addresses: a number with a phonetic word like "23 Adam", "Adam 6-2", "3 Lincoln 12", "Paul 7", "Mary 40", "Sam 2" names a patrol unit.
-- Radio and penal codes (10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150) are not house numbers.
+- Radio and penal codes (10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150) are not house numbers. "Code 2", "Code 3", "Code 4" are often misheard (e.g. "go to you" at the start of a call is usually "Code 2").
+- Numbers after room, bed, suite, apartment, space or gate are inside a building: never a highway or house number ("room 101" is not US 101).
+- Hospitals are named by short names: "French" = French Hospital, "Sierra" or "Sierra Vista" = Sierra Vista Hospital, "Twin" or "Twin Cities" = Twin Cities Hospital, "Marian" = Marian Hospital (Santa Maria), "AG hospital" = Arroyo Grande Hospital. For a patient move ("going to French, room 101, bed 2"), the location is the destination hospital: put it in "place".
 - "street" and "cross" should be copied exactly from the candidate street list. Highways can be given as "US 101", "CA 1", "CA 46", etc.
 - If the call places itself by two roads ("north of 101, north of 13th Street, overcrossing", "Highway 1 at Main", "Foothill just west of O'Connor", "Spring past 24th"), give them as "street" and "cross".
 - If a street suffix was spoken ("Mission Street"), pick the candidate with that same suffix, not a similar name ("Mission Lane").
@@ -728,7 +865,7 @@ Rules:
 - "same_incident": the incident id (from recent calls) this transmission is about, if it continues one (same place, same units, "on scene", "arrived"); else null.
 - "resolves": the incident id this transmission says is finished ("10-8", "code 4", "clear", "GOA", "UTL", "cancel", "disregard", "report to follow", "in custody", "back in service"), matched by unit call sign or place; else null.
 - Most calls are in San Luis Obispo County. If unsure, prefer null over a guess.`;
-const aiOn=()=>$('optAI').checked&&!!store.get('sttKey_groq','');
+const aiOn=()=>$('optAI').checked&&!!sttKey('groq');
 // worth checking: anything that might carry a place (numbers, names, towns) or that the recognizer was unsure of
 const FOLLOWUP=/\b(on scene|same (location|address|place)|arriv\w*|10-97|that (location|address)|out (there|with)|there now|on location)\b/i;
 function needsCheck(text,unc){const w=wordsOf(text);if((FOLLOWUP.test(text)||RESOLVE.test(text))&&incidents.some(i=>i.status==='active'&&!i.gone))return true;return w.some(x=>/^\d{2,}/.test(x))||(unc&&unc.size>0)||/\b[A-Z][a-z]{2,}/.test(text.replace(/^\W*\w+/,''))||w.some(x=>!COMMON_EN.has(x)&&x.length>3&&!PHONETIC.has(x))}
@@ -763,7 +900,7 @@ async function aiCheck(entry){
   const recent=recentCalls(entry);
   for(const r of recent){const m=r.match(/→ (.+)$/);if(m)for(const part of m[1].split(' & '))if(SD.byName.has(part.replace(/^\d+ /,'')))cands.push(`${part.replace(/^\d+ /,'')} (${streetTown(part.replace(/^\d+ /,''))})`)}
   const user=JSON.stringify({transcript:entry.text,unsure_words:[...(entry.unc||[])],recent_calls:recent,candidate_streets:[...new Set(cands)]});
-  const key=store.get('sttKey_groq','');
+  const key=sttKey('groq');
   for(const model of AI_MODELS){
     if(Date.now()<(aiLimitedUntil[model]||0))continue;
     try{
@@ -833,9 +970,9 @@ async function resolveAI(loc){
   if(!g&&loc.place){
     try{const r=await nominatim('search',searchParams({limit:'1',q:`${loc.place}${st?', '+st:''}, ${town?townName(town):'San Luis Obispo County'}, California`}));if(r.length){g={lat:+r[0].lat,lon:+r[0].lon,precise:true};label=`${titleCase(loc.place)}${st?', '+st:''}`}}catch{}
   }
-  if(!g&&st){g=streetLocal(S(st),town);label=st+(loc.place?` (${loc.place})`:'')}
+  let only=null;if(!g&&st){g=streetLocal(S(st),town);label=st+(loc.place?` (${loc.place})`:'');if(!loc.place&&!loc.number&&!loc.cross)only=S(st)}
   if(!g||!inRegion(g.lat,g.lon))return null;
-  return{g:{...g,label},loc:{label,type:'ai',words:[]}};
+  return{g:{...g,label},loc:{label,type:'ai',words:[],s:only||undefined,exact:!!only}};
 }
 // same as resolveAI, plus which words of the call to highlight
 async function resolveAIWords(loc,text){
@@ -901,7 +1038,6 @@ function defaultModel(){return HAS_GPU?'small':'base'}
 const MAP_OK=!!window.L;
 if(!MAP_OK){const NOOP=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>'':NOOP,apply:()=>NOOP});window.L=NOOP;$('map').innerHTML='<div class="maperr">The map couldn\'t load. Check your connection and reload. Transcripts and alerts still work.</div>'}
 const map=L.map('map',{zoomControl:false,preferCanvas:true,tapTolerance:20}).setView([35.28,-120.66],11);
-L.control.zoom({position:'bottomright'}).addTo(map);
 const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
 L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19,attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'}).addTo(map);
 L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}).addTo(map);
@@ -910,25 +1046,54 @@ let me=null,meAcc=0,meMarker=null,meCircle=null,accCircle=null;
 const incidents=[];let incSeq=0;
 const RESOLVED_SHOW=10*60e3,ACTIVE_SHOW=60*60e3; // resolved pins stay 10 min; others 1 hour after the last update
 const pinColor=inc=>inc.status==='resolved'?'#53ebb0':inc.inZone?'#ff4e5e':inc.precise?'#ff864e':'#e3b34f';
-const markerStyle=inc=>({radius:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
+const markerStyle=inc=>({radius:inc.line?7:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
 // keep popups clear of the floating panels
 function popPad(){const w=innerWidth<=760;return{autoPanPaddingTopLeft:w?[10,190]:[430,110],autoPanPaddingBottomRight:w?[10,innerHeight*0.35]:[390,30]}}
 function callPopup(entry,r){
   const inc=entry&&entry.inc,n=inc?inc.entries.length:1,st=inc&&inc.status==='resolved'?'<span style="color:var(--green)"> · RESOLVED</span>':'';
   return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?' · '+esc(entry.kinds[0]):''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
 }
+// A street named with no address or cross street: draw the street itself (the stretch near where the call was placed)
+function streetLine(s,lat,lon){
+  if(!SD.ready||!s||s.hwy)return null;
+  const ids=waysFor(s,null),X=lon*KX,Y=lat*KY,R=2500,out=[];
+  for(const i of ids){if(SD.bb[i*4]-R>X||SD.bb[i*4+2]+R<X||SD.bb[i*4+1]-R>Y||SD.bb[i*4+3]+R<Y)continue;
+    const pts=[];for(let p=SD.off[i];p<SD.off[i+1];p++){const near=Math.hypot(SD.x[p]-X,SD.y[p]-Y)<=R;if(near){const[la,lo]=toLL(SD.x[p],SD.y[p]);pts.push([+la.toFixed(5),+lo.toFixed(5)])}else if(pts.length>1){out.push(pts.splice(0))}else pts.length=0}
+    if(pts.length>1)out.push(pts)}
+  return out.length?out:null;
+}
+const lineFor=(loc,g)=>loc&&loc.s&&loc.exact&&!g.precise?streetLine(loc.s,g.lat,g.lon):null;
+const lineStyle=inc=>({color:pinColor(inc),weight:6,opacity:inc.status==='resolved'?.6:.9,lineCap:'round',lineJoin:'round',bubblingMouseEvents:false});
+function incDist(inc){if(!me)return Infinity;let d=dist(me,[inc.lat,inc.lon]);if(inc.line)for(const seg of inc.line)for(const p of seg){const x=dist(me,p);if(x<d)d=x}return d}
+function styleInc(inc){inc.marker.setStyle(markerStyle(inc));if(inc.lineLayer)inc.lineLayer.setStyle(lineStyle(inc))}
+function setIncLine(inc,line){
+  if(inc.lineLayer){incidentLayer.removeLayer(inc.lineLayer);inc.lineLayer=null}inc.line=line||null;
+  if(inc.line){inc.lineLayer=L.polyline(inc.line,lineStyle(inc)).addTo(incidentLayer);inc.lineLayer.on('click',e=>{L.DomEvent.stop(e);inc.marker.openPopup();focusIncident(inc,true)});inc.marker.bringToFront&&inc.marker.bringToFront()}
+}
+// Tap a pin: scroll the transcript to the first call about that place and highlight every related call
+let focusedInc=null;
+function focusIncident(inc,scroll){
+  const prev=focusedInc;focusedInc=inc;
+  if(prev&&prev!==inc)for(const e of prev.entries)if(e.el)e.el.classList.remove('related');
+  if(!inc)return;
+  const els=inc.entries.filter(e=>e.el&&e.el.isConnected);for(const e of els)e.el.classList.add('related');
+  if(scroll&&els.length){const first=els.slice().sort((a,b)=>a.time-b.time)[0].el;if($('feed').classList.contains('collapsed'))$('feedToggle').click();first.scrollIntoView({block:innerWidth<=760?'start':'center',behavior:'smooth'})}
+}
 function addIncident(entry,loc,g,saved){
   const inc=Object.assign({id:'i'+Date.now().toString(36)+(incSeq++),lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,time:+entry.time,lastAt:Date.now(),status:'active',resolvedAt:0,entries:[],units:new Set()},saved||{});
-  inc.entries=inc.entries||[];inc.units=new Set(inc.units||[]);inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());
+  inc.entries=inc.entries||[];inc.units=new Set(inc.units||[]);
+  const line=saved?saved.line:lineFor(loc,g);inc.line=line||null;inc.inZone=incDist(inc)<=radiusM();
   inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer).bindPopup(()=>{const e=inc.entries[inc.entries.length-1];return e?callPopup(e,{label:inc.label,precise:inc.precise}):esc(inc.label)},{maxWidth:300,...popPad()});
+  inc.marker.on('click',()=>focusIncident(inc,true));inc.marker.on('popupclose',()=>{if(focusedInc===inc)focusIncident(null)});
+  setIncLine(inc,line);
   incidents.push(inc);
   if(incidents.length>300)dropIncident(incidents[0]);
   return inc;
 }
-function dropIncident(inc){incidentLayer.removeLayer(inc.marker);const k=incidents.indexOf(inc);if(k>=0)incidents.splice(k,1);inc.gone=true}
+function dropIncident(inc){incidentLayer.removeLayer(inc.marker);if(inc.lineLayer)incidentLayer.removeLayer(inc.lineLayer);if(focusedInc===inc)focusedInc=null;const k=incidents.indexOf(inc);if(k>=0)incidents.splice(k,1);inc.gone=true}
 function resolveIncident(inc,entry){
   if(!inc||inc.status==='resolved')return;
-  inc.status='resolved';inc.resolvedAt=Date.now();inc.marker.setStyle(markerStyle(inc));
+  inc.status='resolved';inc.resolvedAt=Date.now();styleInc(inc);
   for(const e of inc.entries)if(e.el)drawLine(e);
   if(entry&&entry.el)drawLine(entry);
   updateEdge();saveState();
@@ -945,15 +1110,8 @@ $('mbMe').onclick=()=>{if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:1
 $('mbAll').onclick=()=>{const pts=incidents.map(i=>[i.lat,i.lon]);if(me)pts.push(me);if(pts.length>1)map.fitBounds(pts,{maxZoom:15,...fitPad()});else if(pts.length)map.setView(pts[0],15);else map.setView([35.28,-120.66],10)};
 function fitPad(){const w=innerWidth<=760;return w?{paddingTopLeft:[20,200],paddingBottomRight:[20,innerHeight*0.4]}:{paddingTopLeft:[440,140],paddingBottomRight:[150,40]}}
 
-// Tap the map to set your zone (ignores the tap that just closes a popup)
-let popupClosedAt=0;map.on('popupclose',()=>popupClosedAt=Date.now());
-map.on('click',e=>{
-  if(document.body.classList.contains('picking')){map.panTo(e.latlng);return}
-  if(Date.now()-popupClosedAt<350)return;
-  const btn=document.createElement('button');btn.className='popbtn';btn.textContent='SET MY ZONE HERE';
-  const pop=L.popup({closeButton:true,...popPad()}).setLatLng(e.latlng).setContent(btn).openOn(map);
-  btn.onclick=()=>{map.closePopup(pop);stopFollow();setLocation(e.latlng.lat,e.latlng.lng,'Set on map')};
-});
+// While picking a spot, a tap moves the crosshair there
+map.on('click',e=>{if(document.body.classList.contains('picking'))map.panTo(e.latlng)});
 
 /* ================================================================
    LOCATION & WATCH ZONE
@@ -997,31 +1155,29 @@ function refreshNearby(how){
   const w=$('where');w.classList.toggle('warn',!inCounty);
   w.textContent=!inCounty?'This spot is outside San Luis Obispo County, so calls on this feed won\'t be near it.':`${place||'Zone set'}${meAcc?` · ±${Math.round(meAcc)} m`:''}${how?` · ${how}`:''}`;
 }
-function recheckZone(){for(const inc of incidents){inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());inc.marker.setStyle(markerStyle(inc))}updateEdge()}
+function recheckZone(){for(const inc of incidents){inc.inZone=incDist(inc)<=radiusM();styleInc(inc)}updateEdge()}
 function geoError(err){
   const ios=/iPhone|iPad/.test(navigator.userAgent),w=$('where');w.classList.add('warn');zoneOpen(true);
   w.textContent=err&&err.code===1
     ?(ios?'Location is blocked. Open Settings → Privacy & Security → Location Services → Safari Websites, choose "While Using", then tap MY LOCATION again. Or search an address.':'Location is blocked for this site. Allow it in your browser\'s site settings, or search an address.')
     :'Couldn\'t get a GPS fix. Tap MY LOCATION to try again, search an address, or tap the map.';
 }
-$('geoBtn').onclick=()=>{
-  if(!navigator.geolocation||!window.isSecureContext){$('where').textContent='This browser can\'t share location here. Search an address or tap the map.';return}
-  $('where').classList.remove('warn');$('where').textContent='Finding you…';$('geoBtn').disabled=true;
-  let best=null,done=false;const t0=Date.now();
-  const finish=()=>{if(done)return;done=true;navigator.geolocation.clearWatch(id);$('geoBtn').disabled=false};
-  const id=navigator.geolocation.watchPosition(p=>{
-    const first=!best;if(first||p.coords.accuracy<best.coords.accuracy){best=p;setLocation(p.coords.latitude,p.coords.longitude,'GPS',p.coords.accuracy,!first)}
-    if(p.coords.accuracy<=20||Date.now()-t0>9000)finish();
-  },err=>{finish();if(!best)geoError(err)},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
-  setTimeout(()=>{finish();if(!best)geoError({code:3})},16000);
-};
-let followId=null;
-function stopFollow(){if(followId!=null){navigator.geolocation.clearWatch(followId);followId=null}$('follow').checked=false}
-$('follow').onchange=()=>{
-  if(!$('follow').checked){stopFollow();return}
-  if(!navigator.geolocation){$('follow').checked=false;return}
-  followId=navigator.geolocation.watchPosition(p=>{if(!me||dist(me,[p.coords.latitude,p.coords.longitude])>25)setLocation(p.coords.latitude,p.coords.longitude,'Following you',p.coords.accuracy,true)},err=>{stopFollow();geoError(err)},{enableHighAccuracy:true,maximumAge:10000});
-};
+// Your zone follows your GPS position unless you set a spot yourself (search, PICK ON MAP, or dragging the pin)
+let followId=null,gpsFirst=false;
+function startGps(user){
+  if(!navigator.geolocation||!window.isSecureContext){if(user){$('where').classList.add('warn');$('where').textContent='This browser can\'t share location here. Search an address or use PICK ON MAP.';zoneOpen(true)}$('follow').checked=false;return}
+  store.set('locMode','gps');$('follow').checked=true;
+  if(followId!=null)navigator.geolocation.clearWatch(followId);
+  if(user||!me){$('where').classList.remove('warn');$('where').textContent='Finding you…'}
+  gpsFirst=true;$('geoBtn').classList.add('on');
+  followId=navigator.geolocation.watchPosition(p=>{const c=p.coords,move=!me||dist(me,[c.latitude,c.longitude])>25||(meAcc&&c.accuracy<meAcc*0.6);
+    if(gpsFirst||move){setLocation(c.latitude,c.longitude,'Your location',c.accuracy,!(gpsFirst&&(user||!store.get('myLoc',null))));gpsFirst=false}},
+    err=>{const had=!!me;stopFollow(err.code===1);if(user||!had)geoError(err)},{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+}
+// switch to a spot you chose yourself
+function stopFollow(denied){if(followId!=null){navigator.geolocation.clearWatch(followId);followId=null}$('follow').checked=false;$('geoBtn').classList.remove('on');if(!denied)store.set('locMode','manual')}
+$('geoBtn').onclick=()=>startGps(true);
+$('follow').onchange=()=>{if($('follow').checked)startGps(true);else{stopFollow();refreshNearby('Set by you')}};
 $('searchForm').onsubmit=async e=>{
   e.preventDefault();const q=$('searchInput').value.trim();if(!q)return;const box=$('results');box.innerHTML='<div class="note">Searching…</div>';
   const items=[];
@@ -1101,7 +1257,9 @@ function watchMatches(text){
     if(suf.test(s)||(re.test(s)&&!COMMON.has(w.base)))hits.push(w)}
   return hits;
 }
+const codeLabel=c=>/^code /i.test(c.key)?'Code '+c.key.slice(5):/^[a-z]+$/.test(c.key)?c.key.toUpperCase():c.key.toUpperCase();
 function renderText(entry){
+  if(entry.morse)return `<span class="morse">${esc(entry.text)}</span><span class="mpat" title="Morse code as heard">${esc(entry.morse.pattern)}</span>`;
   const fixed=new Map(entry.fixes.map(f=>[f.to.toLowerCase(),f.from]));
   const locWords=new Set(entry.locs.flatMap(l=>l.words).filter(w=>!/^\d{1,2}$/.test(w)));
   const watchW=new Set(entry.hits.flatMap(h=>h.base.split(' ')));
@@ -1112,28 +1270,41 @@ function renderText(entry){
     return h;
   }).join('');
   for(const[to,from]of fixed){const re=new RegExp(`\\b(${reEsc(esc(to))})\\b`,'i');html=html.replace(re,`<span class="fix" title="Heard as “${esc(from)}”">$1</span>`)}
+  // radio codes: dotted underline; hover or tap to see what they mean
+  const cs=codesIn(entry.text,locWordsOf(entry)),held=[];
+  if(cs.length){html=html.split(/(<[^>]+>)/).map(seg=>{if(seg[0]==='<')return seg;
+    for(const c of cs){if(c.done)continue;const re=new RegExp(`(^|[^\\w-])(${reEsc(esc(c.text))})(?![\\w-])`,'i');
+      if(re.test(seg)){c.done=true;seg=seg.replace(re,(_,a,b)=>{held.push(`<span class="code" tabindex="0" data-m="${esc(codeLabel(c))}: ${esc(c.meaning)}">${b}</span>`);return a+'\u0001'+(held.length-1)+'\u0002'})}}
+    return seg}).join('').replace(/\u0001(\d+)\u0002/g,(_,i)=>held[+i])}
   return html;
 }
+const ICON_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.8v12.4a.8.8 0 0 0 1.2.7l9.6-6.2a.8.8 0 0 0 0-1.4L9.7 5.1a.8.8 0 0 0-1.2.7z" fill="currentColor"/></svg>',
+  ICON_STOP='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.8" fill="currentColor"/></svg>';
 function drawLine(entry){
   const el=entry.el;if(!el)return;
   const inc=entry.inc&&!entry.inc.gone?entry.inc:null,resolved=!!(inc&&inc.status==='resolved');
-  el.className='line'+(entry.alert&&!resolved?' alert':'')+(inc?' located':'')+(resolved?' resolved':'');
+  el.className='line'+(entry.alert&&!resolved?' alert':'')+(inc?' located':'')+(resolved?' resolved':'')+(inc&&inc===focusedInc?' related':'')+(entry.morse?' morseline':'');
   const tags=[];
   if(entry.partial)tags.push('<span class="tag pend">● still talking…</span>');
-  if(entry.kinds.length)tags.push(`<span class="tag">${entry.kinds[0]}</span>`);
+  if(entry.kinds.length)tags.push(`<span class="tag type" title="Type of call">${esc(entry.kinds[0])}</span>`);
   if(entry.results.length){const r=entry.results[0];tags.push(`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' ≈'}</span>`)}
   if(entry.zone&&!resolved)tags.push('<span class="tag al">IN YOUR ZONE</span>');
   else if(entry.hits.length&&!resolved)tags.push(`<span class="tag al" title="${esc(entry.hits.map(h=>h.name).join(', '))}">WATCHED STREET</span>`);
   if(resolved)tags.push('<span class="tag ok">✓ RESOLVED</span>');
   if(entry.resolvedInc&&entry.resolvedInc!==inc)tags.push(`<span class="tag ok">✓ closes ${esc(entry.resolvedInc.label)}</span>`);
+  if(!entry.morse)for(const c of codesIn(entry.text,locWordsOf(entry)).slice(0,5))tags.push(`<span class="tag code" tabindex="0" title="${esc(codeLabel(c)+': '+c.meaning+' · '+c.src)}"><b>${esc(codeLabel(c))}</b> ${esc(c.meaning)}</span>`);
   const canPlay=entry.clip&&!entry.clipExpired&&Date.now()-entry.time<CLIP_KEEP;
-  const play=canPlay?`<button class="play${entry.playing?' on':''}" type="button" aria-label="${entry.playing?'Stop':'Play'} this call" title="${entry.playing?'Stop':'Hear this call'}">${entry.playing?'■':'▶'}</button>`:'';
+  const play=canPlay?`<button class="play${entry.playing?' on':''}" type="button" aria-label="${entry.playing?'Stop':'Play'} this call" title="${entry.playing?'Stop':'Hear this call'}">${entry.playing?ICON_STOP:ICON_PLAY}</button>`:'';
   if(entry.check&&!entry.partial)tags.push(`<span class="tag chk" title="${esc(entry.checkNote||entry.check)}">${esc(entry.check)}</span>`);
   el.innerHTML=`<div class="t">${fmtTime(entry.time).slice(0,5)}${play}</div><div class="x">${renderText(entry)}${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`;
 }
 // Text work, Claude review and mapping happen before the call is shown.
+// common mishearings of response codes ("go to you" at the start of a call is "Code 2")
+function codeFix(t){return t.replace(/^(\s*)go to you\b/i,'$1Code 2').replace(/\bcode[- ](two|too|to)\b/gi,'Code 2').replace(/\bcode[- ](three|tree)\b/gi,'Code 3').replace(/\bcode[- ](four|for)\b(?!\s+(the|a|an|him|her|them|us|me)\b)/gi,'Code 4').replace(/\bcode[- ]one\b/gi,'Code 1')}
 async function prepare(entry,merged,info={}){
-  const snapped=snapNames(merged.text);
+  if(info.morse){const m=info.morse;Object.assign(entry,{text:m.text,morse:{pattern:m.pattern,wpm:m.wpm||0,hz:m.hz||0},fixes:[],unc:new Set(),results:[],hits:[],kinds:['MORSE CODE'],locs:[],geo:null,aiChecked:false,
+    check:'✓ MORSE DECODED',checkNote:m.hz?`Decoded from a ${m.hz} Hz tone at about ${m.wpm} words per minute. Radio repeaters send their FCC call sign this way.`:'Dots and dashes in the transcript, decoded'});return}
+  const snapped=snapNames(codeFix(merged.text));if(snapped.text!==merged.text)snapped.fixes=wordFixes(merged.text,snapped.text).concat(snapped.fixes.filter(f=>!wordFixes(merged.text,snapped.text).some(g=>g.to===f.to)));
   Object.assign(entry,{text:snapped.text,fixes:snapped.fixes,unc:merged.unc,primed:info.primed,plain:info.plain,results:[],hits:[],kinds:[],locs:[]});
   entry.check=info.cloud?'✓ '+info.cloud:info.typed?'TEST':info.single?'1 HEARING':merged.agree?'✓ HEARINGS AGREE':'✓ DOUBLE-CHECKED';
   entry.checkNote=info.cloud?'Transcribed by '+info.cloud+(merged.unc&&merged.unc.size?'. Dotted words were low-confidence.':''):info.typed?'Typed test phrase':info.single?'Heard once (calls were piling up)':merged.agree?'Both hearings matched':'The two hearings differed; the more consistent one was kept';
@@ -1146,9 +1317,9 @@ async function prepare(entry,merged,info={}){
   const {locs,town}=extract(entry.text);
   if(town){lastTown=town;lastTownAt=Date.now()}
   const ctxTown=town||(Date.now()-lastTownAt<5*60e3?lastTown:null);
-  Object.assign(entry,{locs,kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
+  Object.assign(entry,{locs,kinds:kindsOf(entry.text,locs.flatMap(l=>l.words||[])),hits:watchMatches(entry.text)});
   for(const loc of locs.slice(0,2)){const g=await geocode(town?loc:{...loc,_carried:true},ctxTown);if(g&&(inCountyPt(g.lat,g.lon)||(loc.type==='address'&&inRegion(g.lat,g.lon)))){entry.geo={loc,g};break}}
-  {const l=landmarkIn(entry.text);if(l&&(!entry.geo||!entry.geo.g.precise||entry.geo.loc.type==='street')){entry.geo=landmarkGeo(l,entry.text);entry.locs=[entry.geo.loc]}}
+  {const l=landmarkIn(entry.text);if(l&&weakGeo(entry.geo)){entry.geo=landmarkGeo(l,entry.text);entry.locs=[entry.geo.loc]}}
   // 2) AI check unless the local result is already solid (saves your free AI allowance)
   const solid=!RESOLVE.test(entry.text)&&entry.geo&&entry.geo.g.precise&&entry.geo.loc.type!=='street'&&!(entry.unc&&entry.unc.size)&&!FOLLOWUP.test(entry.text)&&inCountyPt(entry.geo.g.lat,entry.geo.g.lon)&&!/\b(highway|hwy|101|freeway|overcrossing|overpass|on-?ramp|off-?ramp)\b/i.test(entry.text);
   if(!solid&&!info.partial&&!info.typed&&aiOn()&&SD.ready&&needsCheck(entry.text,entry.unc)){
@@ -1160,11 +1331,11 @@ async function prepare(entry,merged,info={}){
       entry.sameAs=ai.same_incident||null;entry.resolves=ai.resolves||null;
       entry.aiChecked=true;entry.check='✓ AI CHECKED';entry.checkNote='Transcript and location checked against recent calls and the county street list'+(ai.confidence?` (${ai.confidence} confidence)`:'');
       const r=await resolveAIWords(ai.location,entry.text);
-      Object.assign(entry,{kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
+      Object.assign(entry,{kinds:kindsOf(entry.text,r?r.loc.words:locWordsOf(entry)),hits:watchMatches(entry.text)});
       if(r&&ai.location.street){const t2=alignStreetWords(entry.text,String(ai.location.street).replace(/\s*\([^)]*\)\s*$/,''));if(t2!==entry.text){entry.fixes=entry.fixes.concat(wordFixes(entry.text,t2));entry.text=t2;r.loc.words=locWordsFor(t2,[ai.location.number,ai.location.street,ai.location.cross,ai.location.place,r.g.label])}}
-      if(r){entry.geo=r;if(ai.confidence==='low')r.g.precise=false;entry.locs=[r.loc];const tn=ai.location.town&&String(ai.location.town).toLowerCase();if(TOWNS[tn]){lastTown=tn;lastTownAt=Date.now()}}
+      if(r){entry.geo=r;if(ai.confidence==='low'){r.g.precise=false;r.loc.exact=false}entry.locs=[r.loc];const tn=ai.location.town&&String(ai.location.town).toLowerCase();if(TOWNS[tn]){lastTown=tn;lastTownAt=Date.now()}}
       else if(ai.location===null){entry.geo=null;entry.locs=[]} // the check says there's no place in this call
-      {const l=landmarkIn(entry.text);if(l&&(!entry.geo||!entry.geo.g.precise||/^US 101 & |^CA \d+ & /.test(entry.geo.g.label)&&!entry.geo.g.precise)){entry.geo=landmarkGeo(l,entry.text);entry.locs=[entry.geo.loc]}}
+      {const l=landmarkIn(entry.text);if(l&&(weakGeo(entry.geo)||l.hosp&&/^(US|CA) \d+/.test(entry.geo.g.label||''))){entry.geo=landmarkGeo(l,entry.text);entry.locs=[entry.geo.loc]}}
     }
   }  // 3) still nothing: a numbered address on a misheard out-of-county road ("9000 Fairlane Highway" → 9000 Airline Highway)
   if(!entry.geo&&!info.partial&&SD.ready){const r=await regionalFallback(entry);if(r){entry.geo=r;entry.locs=[r.loc]}}
@@ -1217,8 +1388,8 @@ async function playClip(entry){
 // ---------------- remember calls and pins between sessions ----------------
 let saveT;
 function saveState(){clearTimeout(saveT);saveT=setTimeout(()=>{const now=Date.now();
-  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units]}));
-  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null}));
+  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units],line:i.line||null}));
+  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null,morse:l.morse||null}));
   store.set('dw_state',{v:1,saved:now,incs,lines:ls});
 },800)}
 function restoreState(){
@@ -1226,7 +1397,7 @@ function restoreState(){
   for(const x of st.incs||[]){if((x.status==='resolved'&&now-x.resolvedAt>RESOLVED_SHOW)||(x.status!=='resolved'&&now-x.lastAt>ACTIVE_SHOW))continue;
     byId.set(x.id,addIncident({time:new Date(x.time)},{label:x.label},{lat:x.lat,lon:x.lon,precise:x.precise,label:x.label},x))}
   for(const x of st.lines.sort((a,b)=>a.time-b.time)){if(now-x.time>ACTIVE_SHOW)continue;
-    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip};
+    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip,morse:x.morse||null};
     const inc=x.inc&&byId.get(x.inc);if(inc){e.inc=inc;inc.entries.push(e)}
     if(x.resolvedInc&&byId.get(x.resolvedInc))e.resolvedInc=byId.get(x.resolvedInc);
     reveal(e);
@@ -1241,7 +1412,7 @@ function reveal(entry){
     entry.el=document.createElement('div');lines.push(entry);
     entry.el.addEventListener('click',e=>{
       if(e.target.closest('.play')){playClip(entry);return}
-      if(!entry.inc||entry.inc.gone)return;map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();if(innerWidth<=760)setSheet(false)});
+      if(!entry.inc||entry.inc.gone)return;if(entry.inc.line)map.fitBounds(L.latLngBounds(entry.inc.line.flat()),{maxZoom:16,...fitPad()});else map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();focusIncident(entry.inc,false);if(innerWidth<=760)setSheet(false)});
     const box=$('transcript'),atTop=box.scrollTop<40;box.prepend(entry.el);if(atTop)box.scrollTop=0;
     while(box.children.length>400)box.lastChild.remove();
     $('tCount').textContent='· '+lines.length;
@@ -1259,7 +1430,7 @@ function reveal(entry){
   if(entry.inc&&!entry.inc.entries.includes(entry)){entry.inc.entries.push(entry);entry.inc.lastAt=Date.now();for(const u of entry.units)entry.inc.units.add(u)}
   // move the pin only when this call created it (its full version arrived) or it pins the place more precisely
   if(entry.geo&&entry.inc&&!newPin&&(entry.inc.entries[0]===entry||(entry.geo.g.precise&&!entry.inc.precise))){const{loc,g}=entry.geo;
-    Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())});entry.inc.marker.setLatLng([g.lat,g.lon]).setStyle(markerStyle(entry.inc))}
+    Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label});entry.inc.marker.setLatLng([g.lat,g.lon]);setIncLine(entry.inc,lineFor(loc,g));entry.inc.inZone=incDist(entry.inc)<=radiusM();styleInc(entry.inc)}
   if(entry.inc){entry.results.push({lat:entry.inc.lat,lon:entry.inc.lon,precise:entry.inc.precise,label:entry.inc.label,inc:entry.inc});entry.zone=entry.inc.inZone}
   // "10-8", "code 4", "clear"...: mark the call it refers to as resolved
   if(entry.final&&RESOLVE.test(entry.text)&&!entry.resolvedChecked){entry.resolvedChecked=true;
@@ -1284,7 +1455,7 @@ function reveal(entry){
 }
 async function handleTyped(text){const e={id:'t'+Date.now().toString(36),time:new Date(),streamT:null,final:true};await prepare(e,{text,unc:new Set(),agree:true},{typed:true});reveal(e)}
 $('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim();if(v){handleTyped(v);$('testInput').value='';$('settingsDlg').close()}};
-$('clearBtn').onclick=()=>{lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0;store.del('dw_state');updateEdge()};
+$('clearBtn').onclick=()=>{focusedInc=null;lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0;store.del('dw_state');updateEdge()};
 $('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
 // Phone sheet
 function setSheet(open){$('feed').classList.toggle('open',open);document.body.classList.toggle('sheet-open',open)}
@@ -1351,7 +1522,10 @@ const PROVIDERS={
 };
 async function apiErr(r){let m='';try{const j=await r.json();m=(j.error&&(j.error.message||j.error))||j.err_msg||j.message||''}catch{}const e=new Error(m||('HTTP '+r.status));e.status=r.status;e.retry=+r.headers.get('retry-after')||0;return e}
 const engine=()=>store.get('engine','groq');
-const sttKey=(k=engine())=>store.get('sttKey_'+k,'');
+// The site's shared Groq key (used until you add your own in Settings)
+const SHARED_GROQ=(()=>{try{return atob(["TzNGaFBkMXJG", "ek5CZmJ5SzVs", "UTg1QVFJWUYz", "YnlkR1dPYlhQ", "MDBRbGpOcjJB", "eFQ0bUlpcV9r", "c2c="].join('')).split('').reverse().join('')}catch{return''}})();
+const ownKey=(k=engine())=>store.get('sttKey_'+k,'');
+const sttKey=(k=engine())=>ownKey(k)||(k==='groq'?SHARED_GROQ:'');
 const cloudReady=()=>engine()!=='device'&&!!sttKey();
 function encodeWav(f32,sr=16000){
   const b=new ArrayBuffer(44+f32.length*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -1366,6 +1540,7 @@ function keyTerms(){ // words for Deepgram to listen for
 let cloudPause=0,cloudBlocked=false,inflight=0;
 const entriesByTx=new Map();let idSeq=0;
 async function handleCloud(item){
+  {const mc=morseDecode(item.audio);if(mc){await showCall(item,{text:mc.text,unc:new Set(),agree:true},{morse:mc,partial:item.partial});return}}
   const prov=PROVIDERS[engine()],key=sttKey(),wav=encodeWav(item.audio);
   aiStatus('TRANSCRIBING');
   let res;
@@ -1375,7 +1550,7 @@ async function handleCloud(item){
     if(text&&promptEcho(text)){res=await prov.run(wav,null,key,[]);text=cleanText(res.text)}
     res.text=text;
   }catch(e){
-    if(e.status===401||e.status===403){cloudBlocked=true;aiStatus('KEY REJECTED');showErr(`${prov.name.split(' ·')[0]} didn't accept your key (${e.message}). Check it in Settings.`,['OPEN SETTINGS',openSettings]);return}
+    if(e.status===401||e.status===403){cloudBlocked=true;aiStatus('KEY REJECTED');showErr(ownKey()?`${prov.name.split(' ·')[0]} didn't accept your key (${e.message}). Check it in Settings.`:`The shared Groq key stopped working (${e.message}). Add your own free key in Settings.`,['OPEN SETTINGS',openSettings]);return}
     if(e.status===429){
       if(e.model==='whisper-large-v3'&&/day|daily|RPD/i.test(e.message+'')||e.model==='whisper-large-v3'&&(e.retry||0)>120){groqLimited['whisper-large-v3']=Date.now()+1000*Math.max(e.retry||3600,600);aiStatus('USING BACKUP MODEL');if(!item.partial)queue.unshift(item);return}
       cloudPause=Date.now()+1000*(e.retry||10);aiStatus('SERVICE LIMIT · WAITING');if(!item.partial)queue.unshift(item);return}
@@ -1383,6 +1558,7 @@ async function handleCloud(item){
     console.warn(e);return;
   }
   if(!res.text)return;
+  {const mt=morseFromText(res.text);if(mt){await showCall(item,{text:mt.text,unc:new Set(),agree:true},{morse:mt,partial:item.partial});return}}
   const unc=new Set(res.unclear.flatMap(t=>wordsOf(t)).filter(w=>!COMMON_EN.has(w)&&w.length>2&&!/^\d/.test(w)));
   await showCall(item,{text:res.text,unc,agree:!unc.size},{cloud:prov.name,partial:item.partial});
 }
@@ -1496,6 +1672,7 @@ async function pumpDevice(){
   while(queue.length){
     if(queue.length>6)queue.splice(0,queue.length-6);
     const seg=queue.shift();
+    {const mc=morseDecode(seg.audio);if(mc){await showCall(seg,{text:mc.text,unc:new Set(),agree:true},{morse:mc,partial:seg.partial});continue}}
     const two=$('optDouble').checked&&queue.length<2;
     aiStatus(two?'HEARING (1 OF 2)':'HEARING');
     try{
@@ -1692,8 +1869,9 @@ audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
 function paintEngine(){
   const e=engine(),dev=e==='device';$('engine').value=e;
   $('keyBox').style.display=dev?'none':'';$('deviceBox').style.display=dev?'':'none';
-  if(!dev){const P=PROVIDERS[e];$('sttKey').placeholder=P.ph;$('sttKey').value=sttKey(e)?'••••••••••••':'';
-    $('engineNote').innerHTML=sttKey(e)?'Key saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
+  if(!dev){const P=PROVIDERS[e],own=ownKey(e),shared=e==='groq'&&!own;$('sttKey').placeholder=shared?'Using the shared key. Paste your own (optional)':P.ph;$('sttKey').value=own?'••••••••••••':'';
+    $('useShared').style.display=e==='groq'&&own?'':'none';
+    $('engineNote').innerHTML=shared?`Using the site's built-in Groq key, so it works with no setup. It's shared by everyone using this site; if it runs into its daily limit, add your own free key from <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>.`:own?'Your own key is saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
   else paintModels();
 }
 function paintUsage(){
@@ -1715,6 +1893,7 @@ $('engine').onchange=()=>{const v=$('engine').value;store.set('engine',v);cloudB
   if(v==='device'){if(listening){gpuCheck.then(()=>{paintModels();if(!worker)startWorker()})}}
   else{if(worker){worker.terminate();worker=null;modelReady=false}if(sttKey(v))aiStatus('READY · '+PROVIDERS[v].name.split(' ·')[0]);else aiStatus('NEEDS KEY')}
   paintEngine();pump()};
+$('useShared').onclick=()=>{store.del('sttKey_groq');cloudBlocked=false;paintEngine();aiStatus('READY · GROQ')};
 $('sttKeySave').onclick=async()=>{const v=$('sttKey').value;if(!v||v.startsWith('••'))return;if(await saveKey(engine(),v,$('engineNote'))){$('sttKey').value='••••••••••••';$('engineNote').textContent='Key works. Transcribing.'}};
 $('setupSave').onclick=async()=>{if(await saveKey('groq',$('setupKey').value,$('setupNote'))){$('setupNote').textContent='Connected. New calls will be transcribed as they come in.';setTimeout(()=>$('setupDlg').close(),900)}};
 $('setupKey').addEventListener('keydown',e=>{if(e.key==='Enter')$('setupSave').click()});
@@ -1739,7 +1918,8 @@ $('sens').value=store.get('sens',6);$('sensLbl').textContent=$('sens').value+'/1
 setRadius(store.get('radius',0.5),false);
 buildStreetIndex(BUILTIN.split('|'));
 store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
-const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0,true);
+const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,store.get('locMode','gps')==='gps'?'Last known':'Set by you',0,true);
+if(store.get('locMode','gps')==='gps')startGps(false);
 restoreState();ClipDB.prune();
 if(saved)map.fitBounds(meCircle.getBounds(),{maxZoom:16,...fitPad()});
 gpuCheck.then(paintModels);
