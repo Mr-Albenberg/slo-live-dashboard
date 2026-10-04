@@ -205,7 +205,7 @@
   <aside id="feed" class="glass" aria-label="Live transcript">
     <div class="grab"></div>
     <div class="phead" id="feedHead">LIVE TRANSCRIPT <span class="muted" id="tCount"></span><span class="muted" id="upcoming"></span><span class="spacer"></span><button class="secondary" id="feedToggle" type="button" aria-label="Collapse transcript">▴</button></div>
-    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Each radio call is transcribed about a second after it ends, then pinned on the map. Long calls show up while they're still being spoken. Street and town names are checked against the county street list. <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear.</div></div>
+    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> The radio plays the moment each piece of the stream arrives, and every call appears here as you hear it. Calls with a location are checked against recent calls and the county street list, then pinned on the map (only places inside SLO County). <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear.</div></div>
   </aside>
 
   <div id="side">
@@ -258,6 +258,7 @@
           <label class="switch" style="margin-top:10px"><input type="checkbox" id="optDouble" checked><span>Double-check each call<small>Hears every call twice and compares. More accurate, twice the work.</small></span></label>
         </div>
       </div>
+      <div><div class="lbl">ADDRESS CHECK</div><label class="switch"><input type="checkbox" id="optAI" checked><span>AI-check calls with locations<small>Reviews each call that mentions a place against recent calls and the county street list, fixes misheard names, ignores unit call signs like "23 Adam", and only pins places inside SLO County. Uses your Groq key.</small></span></label></div>
       <div><div class="lbl">RADIO</div><label class="switch"><input type="checkbox" id="optSound" checked><span>Play radio sound<small>Turn off to transcribe silently.</small></span></label></div>
       <div><div class="lbl">VOICE DETECTION <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6" aria-label="Voice detection sensitivity"></div>
       <div id="watchSec">
@@ -372,7 +373,7 @@ async function loadStreetData(){
       for(let j=0;j<f.length;j+=2){a+=f[j];b+=f[j+1];const X=b/1e5*KX,Y=a/1e5*KY;x[k]=X;y[k]=Y;if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y;k++}
       bb[i*4]=x0;bb[i*4+1]=y0;bb[i*4+2]=x1;bb[i*4+3]=y1}
     off[n]=k;
-    Object.assign(SD,{names:d.names,refs:d.refs,wn,wr,wc,off,x,y,bb});
+    Object.assign(SD,{names:d.names,refs:d.refs,wn,wr,wc,off,x,y,bb});if(d.county)COUNTY=d.county;
     for(let i=0;i<n;i++){
       if(wn[i]>=0){const nm=d.names[wn[i]];let l=SD.byName.get(nm);if(!l)SD.byName.set(nm,l=[]);l.push(i)}
       if(wr[i]>=0)for(const r0 of d.refs[wr[i]].split(';')){const r1=r0.trim();let l=SD.byRef.get(r1);if(!l)SD.byRef.set(r1,l=[]);l.push(i)}
@@ -388,6 +389,9 @@ async function loadStreetData(){
     if(me)refreshNearby();
   }catch(e){console.warn(e);$('streetNote').textContent='Could not load the county street list. Street matching is limited.'}
 }
+// San Luis Obispo County boundary (from OpenStreetMap); every location must fall inside it
+let COUNTY=null;
+function inCountyPt(lat,lon){if(!COUNTY)return lat>BBOX.s&&lat<BBOX.n&&lon>BBOX.w&&lon<BBOX.e;let c=false;for(let i=0,j=COUNTY.length-1;i<COUNTY.length;j=i++){const a=COUNTY[i],b=COUNTY[j];if((a[0]>lat)!==(b[0]>lat)&&lon<(b[1]-a[1])*(lat-a[0])/(b[0]-a[0])+a[1])c=!c}return c}
 function addCell(key,i){let s=SD.grid.get(key);if(!s){s=[];SD.grid.set(key,s)}if(s[s.length-1]!==i)s.push(i)}
 function ptSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=t<0?0:t>1?1:t;const X=ax+t*dx,Y=ay+t*dy;return[Math.hypot(px-X,py-Y),X,Y]}
 function segX(ax,ay,bx,by,cx,cy,dx,dy){const r1=bx-ax,r2=by-ay,s1=dx-cx,s2=dy-cy,den=r1*s2-r2*s1;if(Math.abs(den)<1e-9)return null;const t=((cx-ax)*s2-(cy-ay)*s1)/den,u=((cx-ax)*r2-(cy-ay)*r1)/den;return(t>=0&&t<=1&&u>=0&&u<=1)?[ax+t*r1,ay+t*r2]:null}
@@ -395,7 +399,7 @@ const toLL=(X,Y)=>[Y/KY,X/KX];
 function waysFor(s,town){
   let ids=[];
   if(s.hwy)ids=SD.byRef.get(s.ref)||[];
-  else for(const nm of (SD.baseNames.get(s.base)||[]))ids=ids.concat(SD.byName.get(nm)||[]);
+  else for(const nm of (s.names||SD.baseNames.get(s.base)||[])){if(s.dir&&!nm.toLowerCase().startsWith(s.dir))continue;ids=ids.concat(SD.byName.get(nm)||[])}
   if(town&&TOWNS[town]){const[la,lo]=TOWNS[town],X=lo*KX,Y=la*KY,R=9000;ids=ids.filter(i=>SD.bb[i*4]-R<X&&SD.bb[i*4+2]+R>X&&SD.bb[i*4+1]-R<Y&&SD.bb[i*4+3]+R>Y)}
   return ids;
 }
@@ -448,6 +452,8 @@ const DIRS={north:1,south:1,east:1,west:1,n:1,s:1,e:1,w:1};
 const COMMON=new Set('park pine oak main grand bay south north east west high mesa price spring branch ocean front willow union center church college market river lake hill hills view valley vista sunset sunrise central division industrial airport broad garden palm mill pacific king morro walnut peach flora grove pepper vine field orange lemon cherry olive cedar elm maple ash ridge creek canyon station rail railroad short long first second third fourth fifth sixth seventh eighth ninth tenth state school traffic fire police emergency medical beach unit units code'.split(' '));
 for(const t of Object.keys(TOWNS))COMMON.add(t);
 const STOP=new Set('| the a an and at of to on in is be by for or with unit units copy clear code ten'.split(' '));
+// phonetic alphabet words: "23 Adam", "Adam 6-2", "3 Lincoln 12" are patrol units, never addresses
+const PHONETIC=new Set('adam boy charles david edward frank george henry ida john king lincoln mary nora ocean paul queen robert sam tom union victor william xray x-ray young zebra alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform whiskey yankee zulu'.split(' '));
 const BUILTIN='Higuera Street|Marsh Street|Monterey Street|Santa Rosa Street|Foothill Boulevard|Broad Street|Johnson Avenue|Osos Street|Chorro Street|Madonna Road|Los Osos Valley Road|Tank Farm Road|Orcutt Road|Grand Avenue|California Boulevard|Prado Road|Spring Street|Niblick Road|Creston Road|El Camino Real|Morro Road|Main Street|Quintana Road|Halcyon Road|Fair Oaks Avenue|Branch Street|Ramona Avenue|Oak Park Boulevard|Kennedy Way|Las Tablas Road|Traffic Way|Shell Beach Road|Price Street|Price Canyon Road|Tefft Street|Thompson Avenue|Los Berros Road|South Bay Boulevard';
 let streetIndex=new Map(),streetBases=[];
 function baseOf(name){const t=name.toLowerCase().replace(/['’.]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);while(t.length>1&&DIRS[t[0]])t.shift();while(t.length>1&&SUFFIX[t[t.length-1]]===1)t.pop();return t.join(' ')}
@@ -493,7 +499,7 @@ function findTown(tok){const s=' '+tok.join(' ')+' ';for(const t of Object.keys(
 function extract(text){
   const tok=tokenize(text),found=[],used=new Set(),take=(i,len)=>{for(let k=i;k<i+len;k++)used.add(k)};
   const hwyAt=i=>{if(['highway','hwy','route','freeway','sr','interstate'].includes(tok[i])&&HIGHWAYS[tok[i+1]])return{hwy:true,ref:HIGHWAYS[tok[i+1]],base:HIGHWAYS[tok[i+1]],canon:HIGHWAYS[tok[i+1]],len:2,words:tok.slice(i,i+2)};if(tok[i]==='101')return{hwy:true,ref:'US 101',base:'US 101',canon:'US 101',len:1,words:['101']};return null};
-  const S=m=>({base:m.base,canon:m.canon,hwy:!!m.hwy,ref:m.ref});
+  const S=m=>({base:m.base,canon:m.dir?titleCase(m.dir)+' '+m.canon.replace(/^(North|South|East|West) /,''):m.canon,hwy:!!m.hwy,ref:m.ref,dir:m.dir});
   // town names ("Arroyo Grande", "Morro Bay") are towns, not streets, unless a street suffix follows
   let town=null;
   for(const t of Object.keys(TOWNS).sort((a,b)=>b.length-a.length)){const tw=t.split(' ');
@@ -502,20 +508,23 @@ function extract(text){
     if(used.has(i))continue;
     if(/^\d{2,5}$/.test(tok[i])&&tok[i]!=='10'){
       let j=i+1;if(tok[j]==='block'){j++;if(tok[j]==='of')j++}if(tok[j]==='hundred'&&tok[j+1]==='block'){j+=2;if(tok[j]==='of')j++}if(DIRS[tok[j]])j++;
-      const m=matchStreetAt(tok,j);
+      let m=matchStreetAt(tok,j);
+      if(m&&!m.hasSuffix&&(PHONETIC.has(m.base)||PHONETIC.has(tok[j])))m=null; // "23 Adam" is a unit
       const codeLike=/^1[01]\d\d$/.test(tok[i])&&m&&['and','at'].includes(tok[j+m.len])&&matchStreetAt(tok,j+m.len+1);
-      if(m&&!codeLike){found.push({type:'address',num:tok[i],s:S(m),spoken:m.hasSuffix?m.canon:titleCase(m.base),label:`${tok[i]} ${m.canon}`,score:3,words:[tok[i],...m.words]});take(i,j-i+m.len);i=j+m.len-1;continue}
+      if(m&&!codeLike){found.push({type:'address',num:tok[i],s:S(m),spoken:m.hasSuffix?m.canon:titleCase(m.base),label:`${tok[i]} ${S(m).canon}`,score:3,words:[tok[i],...m.words]});take(i,j-i+m.len);i=j+m.len-1;continue}
     }
-    const h=hwyAt(i),m=h?null:matchStreetAt(tok,i),first=h||m;if(!first)continue;
+    const h=hwyAt(i);let m=h?null:matchStreetAt(tok,i);if(m&&!m.hasSuffix&&PHONETIC.has(m.base))m=null;
+    if(m&&DIRS[tok[i-1]]&&tok[i-1].length>1)m.dir=tok[i-1]; // "East Grand"
+    const first=h||m;if(!first)continue;
     let k=i+first.len;while(/^(north|south|east|west)bound$|^(nb|sb|eb|wb)$/.test(tok[k]||''))k++;
     if(['and','at','near','by','off'].includes(tok[k])&&k+1<tok.length){
       const h2=hwyAt(k+1),m2=h2?null:matchStreetAt(tok,k+1),second=h2||m2;
       if(second&&second.base!==first.base&&!(second.common&&!second.hasSuffix&&!second.hwy&&second.fuzzy)){
-        found.push({type:'cross',a:S(first),b:S(second),label:`${first.canon} & ${second.canon}`,score:2.5,words:[...first.words,...second.words]});take(i,k+1-i+second.len);i=k+second.len;continue}
+        found.push({type:'cross',a:S(first),b:S(second),label:`${S(first).canon} & ${S(second).canon}`,score:2.5,words:[...first.words,...second.words]});take(i,k+1-i+second.len);i=k+second.len;continue}
     }
-    const placeCue=['on','at','near','off','from','toward','towards','to','of'].includes(tok[i-1]);
+    const placeCue=['on','at','near','off','from','toward','towards','to','of'].includes(tok[i-1])||!!(m&&m.dir);
     const major=m&&(SD.baseRank.get(m.base)??9)<=2;
-    if(first.hwy||(m&&(m.hasSuffix||(placeCue&&!m.common&&!m.fuzzy&&major)))){found.push({type:'street',s:S(first),label:first.canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=i+first.len-1}
+    if(first.hwy||(m&&(m.hasSuffix||(placeCue&&(!m.common||m.dir)&&!m.fuzzy&&major)))){found.push({type:'street',s:S(first),label:S(first).canon,score:first.hwy?0.8:1,words:first.words});take(i,first.len);i=i+first.len-1}
   }
   found.sort((a,b)=>b.score-a.score);
   return{locs:found,town};
@@ -621,7 +630,7 @@ const geoCache=new Map();let nomChain=Promise.resolve(),nomLast=0;
 function nominatim(path,params){
   const p=nomChain.then(async()=>{const wait=1100-(Date.now()-nomLast);if(wait>0)await sleep(wait);nomLast=Date.now();
     const u=new URL('https://nominatim.openstreetmap.org/'+path);Object.entries({format:'jsonv2',...params}).forEach(([k,v])=>u.searchParams.set(k,v));
-    const r=await fetch(u,{signal:timeoutSignal(12000)});return r.ok?r.json():[]});
+    const r=await fetch(u,{signal:timeoutSignal(12000)});const j=r.ok?await r.json():[];return path==='search'?j.filter(h=>inCountyPt(+h.lat,+h.lon)):j});
   nomChain=p.catch(()=>{});return p;
 }
 const searchParams=extra=>({limit:'5',countrycodes:'us',bounded:'1',viewbox:`${BBOX.w},${BBOX.n},${BBOX.e},${BBOX.s}`,...extra});
@@ -638,9 +647,112 @@ async function geocode(loc,town){
     }else if(SD.ready&&loc.type==='cross')res=crossLocal(loc.a,loc.b,town)||streetLocal(loc.b,town)||streetLocal(loc.a,town);
     else if(SD.ready&&loc.type==='street')res=streetLocal(loc.s,town);
   }catch(e){console.warn('geocode',e)}
+  if(!res&&town&&loc._carried){const r2=await geocode({...loc,_carried:false},null);geoCache.set(key,r2);return r2}
   geoCache.set(key,res);return res;
 }
 
+
+/* ================================================================
+   AI CHECK: each call with a location is reviewed against recent calls
+   and the county street list (uses the same Groq key)
+   ================================================================ */
+const AI_MODELS=['openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3.8-27b'];
+const aiLimitedUntil={};
+const AI_SYS=`You check speech-to-text transcripts of San Luis Obispo County, California sheriff, police and fire radio. Return JSON only.
+Input: the new transcript, words the recognizer was unsure of, recent calls on the same channel (newest last), and real SLO County street names that sound like words in the transcript (with their town).
+Output: {"text": string, "location": null | {"number": string|null, "street": string|null, "cross": string|null, "town": string|null, "place": string|null}, "confidence": "high"|"medium"|"low"}
+Rules:
+- "text": the transcript with only clear mishearings fixed (street/town names, unit IDs, codes). Keep every word, including the unit or town at the start; never remove, add or invent content.
+- Unit call signs are not addresses: a number with a phonetic word like "23 Adam", "Adam 6-2", "3 Lincoln 12", "Paul 7", "Mary 40", "Sam 2" names a patrol unit.
+- Radio and penal codes (10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150) are not house numbers.
+- "street" and "cross" must be copied exactly from the candidate street list, or null. Never use a street that is not in the list.
+- Use "place" for a business or landmark ("car lot", "Costco", "Cal Poly", "the Madonna Inn").
+- If the transcript only refers back to an earlier call ("same location", "on scene"), use that call's location.
+- Everything is in San Luis Obispo County. If unsure, prefer null over a guess.`;
+const aiOn=()=>$('optAI').checked&&!!store.get('sttKey_groq','');
+// worth checking: anything that might carry a place (numbers, names, towns) or that the recognizer was unsure of
+const FOLLOWUP=/\b(on scene|same (location|address|place)|arriv\w*|10-97|that (location|address)|out (there|with)|there now|on location)\b/i;
+function needsCheck(text,unc){const w=wordsOf(text);if(FOLLOWUP.test(text)&&lines.some(l=>l.inc&&Date.now()-l.time<15*60e3))return true;return w.some(x=>/^\d{2,}/.test(x))||(unc&&unc.size>0)||/\b[A-Z][a-z]{2,}/.test(text.replace(/^\W*\w+/,''))||w.some(x=>!COMMON_EN.has(x)&&x.length>3&&!PHONETIC.has(x))}
+const streetTownCache=new Map();
+function townAt(la,lo){let t=null,best=9000;for(const[k,v]of Object.entries(TOWNS)){if(TOWN_FULL[k]||k.length<5)continue;const d=dist([la,lo],v);if(d<best){best=d;t=k}}return t}
+function streetTowns(name){ // every town a street name appears in ("Ramona Avenue" is in Los Osos and Grover Beach)
+  if(streetTownCache.has(name))return streetTownCache.get(name);
+  const ts=new Set();for(const i of(SD.byName.get(name)||[])){const p=SD.off[i]+Math.floor((SD.off[i+1]-SD.off[i])/2);const[la,lo]=toLL(SD.x[p],SD.y[p]);ts.add(townAt(la,lo)||'rural')}
+  const out=[...ts];streetTownCache.set(name,out);return out;
+}
+const streetTown=nm=>streetTowns(nm).map(t=>t==='rural'?'rural SLO County':titleCase(t)).join(', ');
+function candidateStreets(text){
+  const tok=tokenize(text).filter(t=>t!=='|'),found=new Map();
+  for(let i=0;i<tok.length;i++)for(let n=1;n<=3&&i+n<=tok.length;n++){
+    const w=tok.slice(i,i+n);if(w.some(x=>/^\d/.test(x)||STOP.has(x)))continue;
+    const c=w.join(' '),cz=c.replace(/ /g,'');if(cz.length<3||(n===1&&(COMMON_EN.has(c)&&!SUFFIX[c])&&!streetIndex.has(c)))continue;
+    const max=cz.length>=8?2:cz.length>=5?1:0;
+    for(const b of streetBases){if(Math.abs(b.length-c.length)>max+1)continue;const d=lev(cz,b.replace(/ /g,''),max);if(d<=max){const prev=found.get(b);if(prev==null||d<prev)found.set(b,d)}}
+  }
+  const out=[];for(const[b,d]of[...found.entries()].sort((a,b)=>a[1]-b[1]))for(const nm of(SD.baseNames.get(b)||[]))out.push(nm);
+  return[...new Set(out)].slice(0,24).map(nm=>`${nm} (${streetTown(nm)})`);
+}
+function recentCalls(entry){
+  const now=Date.now();return lines.filter(l=>l!==entry&&l.final&&now-l.time<20*60e3).slice(-8).map(l=>`[${fmtTime(l.time).slice(0,5)}] ${l.text}${l.inc?' → '+l.inc.label:''}`);
+}
+async function aiCheck(entry){
+  const cands=candidateStreets(entry.text);
+  const recent=recentCalls(entry);
+  for(const r of recent){const m=r.match(/→ (.+)$/);if(m)for(const part of m[1].split(' & '))if(SD.byName.has(part.replace(/^\d+ /,'')))cands.push(`${part.replace(/^\d+ /,'')} (${streetTown(part.replace(/^\d+ /,''))})`)}
+  const user=JSON.stringify({transcript:entry.text,unsure_words:[...(entry.unc||[])],recent_calls:recent,candidate_streets:[...new Set(cands)]});
+  const key=store.get('sttKey_groq','');
+  for(const model of AI_MODELS){
+    if(Date.now()<(aiLimitedUntil[model]||0))continue;
+    try{
+      const r=await fetch((API_BASE||'https://api.groq.com')+'/openai/v1/chat/completions',{method:'POST',signal:timeoutSignal(7000),headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
+        body:JSON.stringify({model,messages:[{role:'system',content:AI_SYS},{role:'user',content:user}],response_format:{type:'json_object'},temperature:0,max_completion_tokens:500,...(model.startsWith('openai/')?{reasoning_effort:'low'}:{})})});
+      if(r.status===429){aiLimitedUntil[model]=Date.now()+1000*(+r.headers.get('retry-after')||30);continue}
+      if(!r.ok)continue;
+      const j=await r.json();const out=JSON.parse(j.choices[0].message.content);
+      if(out&&typeof out.text==='string')return out;
+    }catch(e){console.warn('ai check',model,e)}
+  }
+  return null;
+}
+// the check may correct words, never drop them
+function keepsAllWords(before,after){
+  const A=wordsOf(before),B=wordsOf(after),pool=[...B];
+  for(const w of A){let k=pool.indexOf(w);if(k<0)k=pool.findIndex(x=>simWord(w,x)>=0.5||x.replace(/-/g,'')===w.replace(/-/g,''));if(k<0&&/^\d/.test(w))k=pool.findIndex(x=>x.replace(/\D/g,'')===w.replace(/\D/g,''));
+    if(k>=0)pool.splice(k,1);else if(w.length>=3&&B.some(x=>x.length>w.length&&x.includes(w)))continue; // "Nib Lick" -> "Niblick"
+    else if(!['uh','um','the','a'].includes(w))return false}
+  return true;
+}
+// mark words the check changed, so you can see what was corrected
+function wordFixes(before,after){
+  const a=before.split(/\s+/),b=after.split(/\s+/),A=a.map(coreOf),B=b.map(coreOf),n=A.length,m=B.length;
+  const L=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)L[i][j]=A[i]===B[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+  const fixes=[];let i=0,j=0,fa=[],fb=[];const flush=()=>{if(fb.length&&fb.join(' ').replace(/[^\w]/g,'')){fixes.push({from:fa.join(' ')||'(missing)',to:fb.join(' ').replace(/[.,;:!?]+$/,'')})}fa=[];fb=[]};
+  while(i<n||j<m){if(i<n&&j<m&&A[i]===B[j]){flush();i++;j++}else if(j<m&&(i>=n||L[i][j+1]>=L[i+1][j])){fb.push(b[j]);j++}else{fa.push(a[i]);i++}}
+  flush();return fixes.filter(f=>f.to.length>1);
+}
+const nameExact=nm=>{if(!nm)return null;nm=String(nm).replace(/\s*\([^)]*\)\s*$/,'').trim();if(SD.byName.has(nm))return nm;const lc=nm.toLowerCase();for(const k of SD.byName.keys())if(k.toLowerCase()===lc)return k;return null};
+async function resolveAI(loc){
+  if(!loc)return null;
+  const town=loc.town&&TOWNS[String(loc.town).toLowerCase()]?String(loc.town).toLowerCase():null;
+  const inTown=(nm,t)=>!t||streetTowns(nm).includes(t);
+  const fixTown=nm=>{if(!nm||inTown(nm,town))return nm;for(const alt of(SD.baseNames.get(baseOf(nm))||[]))if(inTown(alt,town))return alt;return nm};
+  const st=fixTown(nameExact(loc.street)),cr=fixTown(nameExact(loc.cross));
+  const S=nm=>({base:baseOf(nm),canon:nm,names:[nm]});
+  let g=null,label='';
+  if(st&&loc.number&&/^\d{1,6}$/.test(String(loc.number))){
+    const p=searchParams({limit:'1',street:`${loc.number} ${st}`,state:'California'});if(town)p.city=townName(town);
+    try{const r=await nominatim('search',p);if(r.length){g={lat:+r[0].lat,lon:+r[0].lon,precise:true};label=`${loc.number} ${st}`}}catch{}
+    if(!g){g=streetLocal(S(st),town);label=`${loc.number} ${st}`}
+  }
+  if(!g&&st&&cr){const V=nm=>({base:baseOf(nm),canon:nm});g=crossLocal(S(st),S(cr),town)||crossLocal(V(st),V(cr),town)||crossLocal(V(st),V(cr),null);if(g){label=g.label||`${st} & ${cr}`}}
+  if(!g&&loc.place){
+    try{const r=await nominatim('search',searchParams({limit:'1',q:`${loc.place}${st?', '+st:''}, ${town?townName(town):'San Luis Obispo County'}, California`}));if(r.length){g={lat:+r[0].lat,lon:+r[0].lon,precise:true};label=`${titleCase(loc.place)}${st?', '+st:''}`}}catch{}
+  }
+  if(!g&&st){g=streetLocal(S(st),town);label=st+(loc.place?` (${loc.place})`:'')}
+  if(!g||!inCountyPt(g.lat,g.lon))return null;
+  return{g:{...g,label},loc:{label,type:'ai',words:[]}};
+}
 
 /* ---- stream chunk decoding ---- */
 function demuxTS(u8){
@@ -671,11 +783,13 @@ function mp3Frames(u8){const f=[];let i=0,rate=22050,spf=576;while(i+4<u8.length
   rate=sr;spf=ver===3?1152:576;f.push(u8.subarray(i,i+len));i+=len}
   return{frames:f,rate,spf}}
 function concat(arrs){const n=arrs.reduce((s,a)=>s+a.length,0),o=new Uint8Array(n);let k=0;for(const a of arrs){o.set(a,k);k+=a.length}return o}
-async function decodeTo16k(bytes){
-  const oc=new OfflineAudioContext(1,1,16000);
-  const buf=await oc.decodeAudioData(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+async function decodeChunk(bytes){
+  const dc=(PB.on&&actx)?actx:new OfflineAudioContext(1,1,22050);
+  return await dc.decodeAudioData(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
+}
+async function to16k(buf){
   // radio cleanup: cut rumble and hiss outside the voice band
-  const r=new OfflineAudioContext(1,buf.length,16000),s=r.createBufferSource(),hp=r.createBiquadFilter(),lp=r.createBiquadFilter();
+  const r=new OfflineAudioContext(1,Math.ceil(buf.duration*16000),16000),s=r.createBufferSource(),hp=r.createBiquadFilter(),lp=r.createBiquadFilter();
   s.buffer=buf;hp.type='highpass';hp.frequency.value=220;lp.type='lowpass';lp.frequency.value=3600;s.connect(hp).connect(lp).connect(r.destination);s.start();
   return(await r.startRendering()).getChannelData(0);
 }
@@ -765,7 +879,7 @@ function setLocation(lat,lon,how,acc=0,quiet=false){
 }
 function refreshNearby(how){
   if(!me)return;
-  const inCounty=me[0]>BBOX.s&&me[0]<BBOX.n&&me[1]>BBOX.w&&me[1]<BBOX.e;
+  const inCounty=inCountyPt(me[0],me[1]);
   let place='';
   if(SD.ready){
     const names=nearbyStreets(me[0],me[1],Math.min(radiusM(),1500));
@@ -884,8 +998,8 @@ function drawLine(entry){
     ...entry.kinds.map(k=>`<span class="tag">${k}</span>`),
     ...(entry.zone?['<span class="tag al">IN YOUR ZONE</span>']:[]),
     ...entry.hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
-    ...entry.results.map(r=>`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}</span>`),
-    ...(entry.locs.length&&!entry.results.length?[`<span class="tag pend">couldn't map ${esc(entry.locs[0].label)}</span>`]:[]),
+    ...entry.results.map(r=>`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}${entry.followUp?` · same as ${fmtTime(entry.followUp.time).slice(0,5)} call`:''}</span>`),
+    ...(entry.locs.length&&!entry.results.length&&!entry.aiChecked?[`<span class="tag pend">couldn't map ${esc(entry.locs[0].label)}</span>`]:[]),
     ...(entry.partial?['<span class="tag pend">● STILL TALKING…</span>']:entry.check?[`<span class="tag ok" title="${esc(entry.checkNote||'')}">${entry.check}</span>`]:[])
   ];
   el.innerHTML=`<div class="t">${fmtTime(entry.time)}</div><div class="x">${renderText(entry)}<div class="tags">${tags.join('')}</div></div>`;
@@ -900,11 +1014,24 @@ async function prepare(entry,merged,info={}){
   const reviewed=info.partial?null:await claudeReview(entry);
   if(reviewed&&reviewed!==entry.text){const s2=snapNames(reviewed);entry.fixes=entry.fixes.concat(s2.fixes);entry.text=s2.text;entry.unc=new Set()}
   if(reviewed){entry.check='✓ CLAUDE CHECKED';entry.checkNote='Reviewed by Claude using both hearings'}
+  entry.geo=null;entry.aiChecked=false;
+  if(!info.partial&&!info.typed&&aiOn()&&SD.ready&&needsCheck(entry.text,entry.unc)){
+    const ai=await aiCheck(entry);
+    if(ai){
+      const t=ai.text.trim(),ratio=t.length/Math.max(1,entry.text.length);
+      if(t&&ratio>0.6&&ratio<1.6&&t!==entry.text&&keepsAllWords(entry.text,t)){entry.fixes=entry.fixes.concat(wordFixes(entry.text,t));entry.text=t;entry.unc=new Set()}
+      entry.aiChecked=true;entry.check='✓ AI CHECKED';entry.checkNote='Transcript and location checked against recent calls and the county street list'+(ai.confidence?` (${ai.confidence} confidence)`:'');
+      const r=await resolveAI(ai.location);
+      Object.assign(entry,{locs:[],kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
+      if(r){entry.geo=r;if(ai.confidence==='low')r.g.precise=false;entry.locs=[r.loc];const tn=ai.location.town&&String(ai.location.town).toLowerCase();if(TOWNS[tn]){lastTown=tn;lastTownAt=Date.now()}}
+      return;
+    }
+  }
   const {locs,town}=extract(entry.text);
   if(town){lastTown=town;lastTownAt=Date.now()}
   const ctxTown=town||(Date.now()-lastTownAt<5*60e3?lastTown:null);
   Object.assign(entry,{locs,kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
-  for(const loc of locs.slice(0,2)){const g=await geocode(loc,ctxTown);if(g){entry.geo={loc,g};break}}
+  for(const loc of locs.slice(0,2)){const g=await geocode(town?loc:{...loc,_carried:true},ctxTown);if(g&&inCountyPt(g.lat,g.lon)){entry.geo={loc,g};break}}
 }
 // Put the call on screen, or update it if more of the call has arrived.
 function reveal(entry){
@@ -920,7 +1047,9 @@ function reveal(entry){
   entry.results=[];
   let newPin=false;
   if(entry.geo){const{loc,g}=entry.geo,label=g.label||loc.label;
-    if(!entry.inc){entry.inc=addIncident(entry,loc,g);newPin=true}
+    const same=!entry.inc&&lines.find(l=>l!==entry&&l.inc&&Date.now()-l.time<20*60e3&&dist([l.inc.lat,l.inc.lon],[g.lat,g.lon])<60);
+    if(same){entry.inc=same.inc;entry.followUp=same;entry.alerted=true}
+    else if(!entry.inc){entry.inc=addIncident(entry,loc,g);newPin=true}
     else{Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())});entry.inc.marker.setLatLng([g.lat,g.lon]).setStyle(markerStyle(entry.inc))}
     entry.results.push({...g,label,inc:entry.inc});entry.zone=entry.inc.inZone}
   entry.alert=!!(entry.zone||entry.hits.length);
@@ -961,7 +1090,11 @@ function noteSegments(ms,durs){
   if(ST.start.size>400){const ks=[...ST.start.keys()].sort((a,b)=>a-b).slice(0,ST.start.size-300);for(const k of ks){ST.start.delete(k);ST.dur.delete(k)}}
 }
 const soundSynced=()=>false;
-function schedule(entry){reveal(entry)} // show every call the moment it's ready
+function schedule(entry){
+  const wait=(entry.playAt||0)-Date.now();
+  if(!entry.revealed&&wait>40){clearTimeout(entry.timer);entry.timer=setTimeout(()=>reveal(entry),wait);return}
+  reveal(entry);
+}
 
 /* ================================================================
    CLOUD TRANSCRIPTION (fast and accurate; each call is sent the moment it's heard)
@@ -1033,11 +1166,12 @@ async function handleCloud(item){
 async function showCall(item,merged,info){
   let entry=item.tx!=null?entriesByTx.get(item.tx):null;
   if(entry&&entry.final&&item.partial)return; // the full call already arrived
-  if(!entry){entry={time:item.wall?new Date(item.wall):new Date(),streamT:item.t,tx:item.tx};if(item.tx!=null)entriesByTx.set(item.tx,entry);if(entriesByTx.size>300)entriesByTx.delete(entriesByTx.keys().next().value)}
+  if(!entry){entry={time:item.wall?new Date(item.wall):new Date(),streamT:item.t,tx:item.tx,playAt:PB.on?item.wall:0};if(item.tx!=null)entriesByTx.set(item.tx,entry);if(entriesByTx.size>300)entriesByTx.delete(entriesByTx.keys().next().value)}
   entry.partial=!!item.partial;if(!item.partial)entry.final=true;
   await prepare(entry,merged,info);
   if(entry.final&&item.partial)return;
-  reveal(entry);
+  schedule(entry);
+  if(entry.final)rebuildPrompt();
 }
 
 /* ================================================================
@@ -1117,7 +1251,8 @@ let currentPrompt='';
 function rebuildPrompt(){
   const near=watchStreets.slice(0,8).map(w=>displayBase(w.base)||w.name);
   const local=near.length?` Units near ${near.join(', ')}.`:'';
-  currentPrompt=`San Luis units, 415 at 1200 Higuera Street, two subjects yelling. Copy, en route. 11-83 at Foothill and Santa Rosa. Paso units, 459 alarm, 1520 Niblick Road. Morro Bay, 10-15 at Quintana and Kennedy Way. Grover Beach, Arroyo Grande, Pismo Beach, Atascadero, Los Osos, Nipomo, Templeton. Madonna Road, Los Osos Valley Road, Tank Farm, Broad Street, El Camino Real, Grand Avenue.${local}`;
+  const prev=lines.filter(l=>l.final&&Date.now()-l.time<10*60e3).slice(-2).map(l=>l.text).join(' ').split(' ').slice(-45).join(' ');
+  currentPrompt=`San Luis units, 415 at 1200 Higuera Street, two subjects yelling. Copy, en route. 11-83 at Foothill and Santa Rosa. Paso units, 459 alarm, 1520 Niblick Road. Morro Bay, 10-15 at Quintana and Kennedy Way. Grover Beach, Arroyo Grande, Pismo Beach, Atascadero, Los Osos, Nipomo, Templeton. Madonna Road, Los Osos Valley Road, Tank Farm, Broad Street, El Camino Real, Grand Avenue.${local}${prev?' '+prev:''}`;
   PROMPT_WORDS=new Set(wordsOf(currentPrompt).filter(w=>!COMMON_EN.has(w)&&w.length>2));
 }
 rebuildPrompt();
@@ -1172,22 +1307,42 @@ async function segmentLoop(){
         SEG.seq=seq;await processSegment(ts,seq);
       }
     }catch(e){console.warn('segment',e);if(SEG.running&&++SEG.fails>=3&&!SEG.ok){SEG.running=false;startCaptureFallback();return}}
-    await sleep(2000); // check for a new chunk every 2 s
+    await sleep(1000); // check for a new chunk every second
   }
 }
 async function processSegment(ts,seq){
   const{data,aac}=demuxTS(ts);if(!data.length)return;
-  let bytes=data,drop=0;
-  if(aac){const{frames,rate}=adtsFrames(data);const keep=SEG.carry||[];bytes=concat([...keep,...frames]);drop=Math.round(keep.length*1024*16000/rate);SEG.carry=frames.slice(-6)}
-  else{const{frames,rate,spf}=mp3Frames(data);if(frames.length){const keep=SEG.carry||[];bytes=concat([...keep,...frames]);drop=Math.round(keep.length*spf*16000/rate);SEG.carry=frames.slice(-8)}}
-  let pcm;
-  try{pcm=await decodeTo16k(bytes)}catch(e){if(++SEG.fails>=3&&!SEG.ok){SEG.running=false;startCaptureFallback()}return}
+  let bytes=data,dropSec=0;
+  if(aac){const{frames,rate}=adtsFrames(data);const keep=SEG.carry||[];bytes=concat([...keep,...frames]);dropSec=keep.length*1024/rate;SEG.carry=frames.slice(-6)}
+  else{const{frames,rate,spf}=mp3Frames(data);if(frames.length){const keep=SEG.carry||[];bytes=concat([...keep,...frames]);dropSec=keep.length*spf/rate;SEG.carry=frames.slice(-8)}}
+  let buf,pcm;
+  try{buf=await decodeChunk(bytes);pcm=await to16k(buf)}catch(e){if(++SEG.fails>=3&&!SEG.ok){SEG.running=false;startCaptureFallback()}return}
   SEG.ok++;
-  if(drop&&pcm.length>drop)pcm=pcm.subarray(drop);
+  const drop=Math.round(dropSec*16000);if(drop&&pcm.length>drop)pcm=pcm.subarray(drop);
+  // play this exact audio right away; remember when each part will be heard
+  let playWall=null,wallAt=null;
+  if(PB.on&&actx&&buf.sampleRate===actx.sampleRate){
+    const off=Math.round(dropSec*buf.sampleRate),src=buf.getChannelData(0).subarray(off),R=buf.sampleRate/16000;
+    // how far behind live we'd be; if more than ~1 s, drop quiet stretches (hiss between calls) to catch up
+    let behind=Math.max(0,PB.next-actx.currentTime)-0.4;
+    const F=512,nF=Math.floor(pcm.length/F),quiet=new Uint8Array(nF);
+    for(let f=0;f<nF;f++){let q=0;for(let k=f*F;k<(f+1)*F;k++)q+=pcm[k]*pcm[k];quiet[f]=Math.sqrt(q/F)<Math.max(0.004,floor*sensFactor()*0.8)?1:0}
+    for(let f=0;f<nF;f++)if(!quiet[f])for(let d=-10;d<=10;d++)if(f+d>=0&&f+d<nF&&quiet[f+d]===1)quiet[f+d]=2; // keep ~0.3 s around speech
+    const keep=[];let dst=0,cut=0;
+    for(let f=0;f<=nF;f++){const a=Math.round(f*F*R),b=f<nF?Math.round((f+1)*F*R):src.length;if(b<=a)continue;
+      if(f<nF&&quiet[f]===1&&behind>0.5&&cut<behind){cut+=(b-a)/buf.sampleRate;continue}
+      const last=keep[keep.length-1];if(last&&last.s1===a){last.s1=b}else keep.push({s0:a,s1:b,d0:dst});dst+=b-a}
+    if(dst>0){
+      const b2=actx.createBuffer(1,dst,buf.sampleRate),out=b2.getChannelData(0);for(const k of keep)out.set(src.subarray(k.s0,k.s1),k.d0);
+      playWall=pbPlay(b2);
+      // when each moment of this chunk will actually be heard
+      wallAt=i16=>{const si=i16*R;for(const k of keep)if(si<k.s1)return playWall+(k.d0+Math.max(0,si-k.s0))/buf.sampleRate*1000;return playWall+dst/buf.sampleRate*1000};
+    }
+  }
   let peak=0;for(let i=0;i<pcm.length;i+=8)peak=Math.max(peak,Math.abs(pcm[i]));$('lvl').style.width=Math.min(100,peak*250)+'%';
   if(!SEG.calibrated){const r=[];for(let i=0;i+512<=pcm.length;i+=512){let q=0;for(let k=i;k<i+512;k++)q+=pcm[k]*pcm[k];r.push(Math.sqrt(q/512))}r.sort((a,b)=>a-b);if(r.length)floor=Math.max(1e-4,r[Math.floor(r.length*0.3)]);SEG.calibrated=true}
-  const t0=ST.start.get(seq)??0,wall=Date.now()-(ST.edge-t0)*1000;
-  for(let i=0;i<pcm.length;i+=512)vad(pcm.subarray(i,i+512),16000,t0+i/16000,wall+i/16);
+  const t0=ST.start.get(seq)??0,wall=playWall??(Date.now()-(ST.edge-t0)*1000);
+  for(let i=0;i<pcm.length;i+=512)vad(pcm.subarray(i,i+512),16000,t0+i/16000,wallAt?wallAt(i):wall+i/16);
   flushPartial(16000);
 }
 // Voice activity detection: radio calls are bursts of speech with hiss between them.
@@ -1236,6 +1391,26 @@ async function startCaptureFallback(){
 /* ================================================================
    RADIO PLAYBACK (kept as close to live as is safe)
    ================================================================ */
+// The radio plays from the same chunks the transcriber reads, the moment each one arrives.
+const PB={on:false,gain:null,next:0,srcs:[],started:false};
+function pbStart(){
+  const c=getCtx();if(!c)return false;
+  try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch{} // play even with the iPhone ring switch on silent
+  if(!PB.gain){PB.gain=c.createGain();PB.gain.connect(c.destination)}
+  c.resume&&c.resume();
+  const b=c.createBuffer(1,1,c.sampleRate),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(); // unlocks audio on iPhone
+  PB.on=true;PB.next=0;PB.started=false;return true;
+}
+function pbStop(){PB.on=false;for(const x of PB.srcs)try{x.stop()}catch{};PB.srcs=[]}
+function pbPlay(buf){
+  const c=actx,now=c.currentTime;
+  if(PB.next<now+0.05)PB.next=now+(PB.started?0.12:0.6); // small cushion so chunks join seamlessly
+  PB.started=true;
+  const s=c.createBufferSource();s.buffer=buf;s.connect(PB.gain);s.start(PB.next);PB.srcs.push(s);s.onended=()=>{PB.srcs=PB.srcs.filter(x=>x!==s)};
+  const wall=Date.now()+(PB.next-now)*1000;PB.next+=buf.duration;
+  if(listening)state('LIVE',true);
+  return wall;
+}
 const audio=new Audio();audio.crossOrigin='anonymous';audio.preload='none';audio.setAttribute('playsinline','');
 let hls=null,listening=false,wakeLock=null;
 function state(text,live=false){$('status').textContent=text;$('beacon').classList.toggle('live',live)}
@@ -1269,19 +1444,19 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 async function play(){
   const btn=$('start');btn.disabled=true;state('CONNECTING');
   const c=getCtx();c&&c.resume&&c.resume();
-  let sound=null;
-  if($('optSound').checked)sound=startSound().catch(e=>{console.warn(e);state('NO SOUND · USE FALLBACK')});
+  if($('optSound').checked)pbStart();
   if(engine()==='device'){await gpuCheck;if(!worker){paintModels();startWorker()}}
   else if(!sttKey())openSetup();
   else aiStatus('READY · '+PROVIDERS[engine()].name.split(' ·')[0]);
   SEG.running=true;SEG.seq=-1;SEG.carry=null;SEG.fails=0;SEG.calibrated=false;segmentLoop();
   listening=true;btn.textContent='STOP';btn.disabled=false;keepAwake(true);
-  await sound;if(listening&&!/FALLBACK/.test($('status').textContent))state($('optSound').checked?'LIVE':'LIVE · MUTED',true);
+  if(!$('optSound').checked)state('LIVE · MUTED',true);
 }
-function stop(){listening=false;SEG.running=false;stopSound();keepAwake(false);state('STOPPED');$('start').textContent='START LISTENING';$('lvl').style.width='0';}
+function stop(){listening=false;SEG.running=false;pbStop();stopSound();keepAwake(false);state('STOPPED');$('start').textContent='START LISTENING';$('lvl').style.width='0';}
 $('start').onclick=()=>listening?stop():play();
-$('optSound').onchange=()=>{store.set('sound',$('optSound').checked);if(!listening)return;if($('optSound').checked){startSound().then(()=>state('LIVE',true)).catch(()=>{})}else if(!captured){stopSound();state('LIVE · MUTED',true)}};
+$('optSound').onchange=()=>{store.set('sound',$('optSound').checked);if(!listening)return;if($('optSound').checked){if(captured)startSound().catch(()=>{});else pbStart()}else{pbStop();if(!captured)stopSound();state('LIVE · MUTED',true)}};
 $('optDouble').onchange=()=>store.set('double',$('optDouble').checked);
+$('optAI').checked=store.get('aiCheck',true);$('optAI').onchange=()=>store.set('aiCheck',$('optAI').checked);
 audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
 
 /* ================================================================
@@ -1336,7 +1511,7 @@ store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
 const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0);
 gpuCheck.then(paintModels);
 aiStatus(engine()==='device'?'ON-DEVICE':sttKey()?'READY · '+PROVIDERS[engine()].name.split(' ·')[0]:'NEEDS KEY');
-setTimeout(()=>{loadStreetData();if(!audio.canPlayType('application/vnd.apple.mpegurl'))loadScript(HLS_SRC).catch(()=>{})},150);
+setTimeout(loadStreetData,100);
 </script>
 </body>
 </html>
