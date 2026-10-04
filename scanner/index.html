@@ -1241,6 +1241,7 @@ let hls=null,listening=false,wakeLock=null;
 function state(text,live=false){$('status').textContent=text;$('beacon').classList.toggle('live',live)}
 function startSound(){
   if(hls){hls.destroy();hls=null}ST.frag=null;ST.offs=[];
+  soundStartedAt=Date.now();audio.playbackRate=1;
   if(audio.canPlayType('application/vnd.apple.mpegurl')){audio.src=STREAM;return audio.play()}
   const go=()=>{
     hls=new window.Hls({liveSyncDuration:8.5,liveMaxLatencyDuration:16,maxLiveSyncPlaybackRate:1.25,backBufferLength:20});
@@ -1251,9 +1252,17 @@ function startSound(){
   return window.Hls?go():loadScript(HLS_SRC).then(go);
 }
 // Native players (Safari) start well behind live; jump closer.
-function catchUp(){if(hls||!listening||audio.paused||!audio.seekable.length)return;const end=audio.seekable.end(audio.seekable.length-1);if(end-audio.currentTime>12.5)audio.currentTime=end-8.5}
+// Jump to near-live only while starting up; after that speed up slightly instead, so no radio is ever skipped.
+let soundStartedAt=0;
+function catchUp(){
+  if(hls||!listening||!audio.seekable.length)return;
+  const end=audio.seekable.end(audio.seekable.length-1),behind=end-audio.currentTime;
+  if((Date.now()-soundStartedAt<20000&&behind>12)||behind>45){try{audio.currentTime=end-9}catch{}audio.playbackRate=1;return}
+  const r=behind>13?1.15:behind<10?1:audio.playbackRate;if(audio.playbackRate!==r){audio.preservesPitch=true;audio.playbackRate=r}
+}
+['loadedmetadata','durationchange','canplay','progress'].forEach(ev=>audio.addEventListener(ev,catchUp)); // jump to near-live as soon as the stream loads
 audio.addEventListener('playing',()=>{catchUp();listening&&state($('optSound').checked?'LIVE':'LIVE · MUTED',true)});
-setInterval(catchUp,8000);
+setInterval(catchUp,2000);
 function stopSound(){audio.pause();if(hls){hls.destroy();hls=null}audio.removeAttribute('src');ST.frag=null}
 async function keepAwake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&listening)keepAwake(true)});
