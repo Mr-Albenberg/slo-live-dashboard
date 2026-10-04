@@ -55,7 +55,7 @@
     .grab{display:none}
     #transcript{flex:1;overflow-y:auto;overscroll-behavior:contain}
     .empty{padding:18px 16px;color:var(--muted);font-size:13px;line-height:1.6}.empty b{color:var(--text)}
-    .line{display:grid;grid-template-columns:58px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid #12293a;font-size:14px;line-height:1.5;animation:fade .35s;cursor:default}
+    .line{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid #12293a;font-size:14px;line-height:1.5;animation:fade .35s;cursor:default}
     .line.alert{background:#3a0f17aa;box-shadow:inset 3px 0 var(--red)}
     .line.located{box-shadow:inset 3px 0 var(--orange);cursor:pointer}
     .line.located:hover{background:#0d2232}
@@ -101,6 +101,10 @@
     .switch small{display:block;color:var(--dim);font-size:11.5px}
     .linkbtn{min-height:30px;padding:0 8px;background:none;color:var(--cyan);font-size:11px}
     #zone.empty-zone .needloc{display:none}
+    #zone input[type=range],#zone .zrow{display:none}
+    #zone.expanded input[type=range],#zone.expanded .zrow{display:flex}
+    #zone.expanded input[type=range]{display:block}
+    .mapbar button span{display:none}
 
     .mapbar{position:fixed;z-index:800;right:var(--gap);bottom:calc(var(--gap) + 96px);display:flex;flex-direction:column;gap:7px}
     .mapbar button{min-height:42px;min-width:42px;padding:0 11px;background:var(--glass);border:1px solid #2f6580;color:#dff5fc;box-shadow:0 6px 16px #0007;font-size:11px}
@@ -130,6 +134,14 @@
     @keyframes pulse{70%{box-shadow:0 0 0 14px #61dcff00}100%{box-shadow:0 0 0 0 #61dcff00}}
     .maperr{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
 
+    #zoneEdge{position:fixed;inset:0;z-index:2600;pointer-events:none;border:3px solid var(--red);box-shadow:inset 0 0 24px #ff4e5e55;display:none;animation:edge 2.4s ease-in-out infinite}
+    body.zone-active #zoneEdge{display:block}
+    @keyframes edge{50%{box-shadow:inset 0 0 6px #ff4e5e33}}
+    .play{min-height:0;width:26px;height:26px;padding:0;margin-top:6px;border-radius:50%;background:#102c3e;border:1px solid #35647c;color:#dff5fc;font-size:10px;display:grid;place-items:center}
+    .play.on{background:var(--cyan);color:#031018;border-color:var(--cyan)}
+    .chk{color:var(--green);font-size:11px;cursor:help;opacity:.8}
+    .line.resolved{opacity:.62}
+    .line.resolved .x{color:#b7cad3}
     #errbar{display:none;position:fixed;z-index:2900;left:50%;transform:translateX(-50%);top:calc(var(--top) + 78px);width:min(560px,calc(100% - 24px));padding:10px 12px;border:1px solid var(--red);border-radius:9px;background:#3a0c14f2;color:#ffc2c8;font-size:13px;line-height:1.45}
     #errbar button{margin:6px 6px 0 0;min-height:28px;padding:0 9px;font-size:10px}
     #toast{position:fixed;z-index:3000;top:var(--top);left:50%;transform:translate(-50%,-160%);transition:transform .35s;width:min(560px,calc(100% - 24px));padding:13px 16px;background:#3a0c14f2;border:1px solid var(--red);border-radius:10px;box-shadow:0 16px 50px #000c;cursor:pointer}
@@ -184,6 +196,7 @@
 </head>
 <body>
   <div id="map"></div>
+  <div id="zoneEdge" aria-hidden="true"></div>
 
   <header class="glass">
     <div class="brand">
@@ -197,7 +210,7 @@
     </div>
     <div class="controls">
       <button id="start" type="button">START LISTENING</button>
-      <button id="alertsBtn" class="secondary" type="button">ENABLE ALERTS</button>
+      <button id="alertsBtn" class="secondary icon" type="button" title="Alerts off. Tap to turn on." aria-label="Turn alerts on">🔕</button>
       <button id="settingsBtn" class="secondary icon" type="button" aria-label="Settings" title="Settings">⚙</button>
     </div>
   </header>
@@ -205,18 +218,18 @@
   <aside id="feed" class="glass" aria-label="Live transcript">
     <div class="grab"></div>
     <div class="phead" id="feedHead">LIVE TRANSCRIPT <span class="muted" id="tCount"></span><span class="muted" id="upcoming"></span><span class="spacer"></span><button class="secondary" id="feedToggle" type="button" aria-label="Collapse transcript">▴</button></div>
-    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> The radio plays the moment each piece of the stream arrives, and every call appears here as you hear it. Calls with a location are checked against recent calls and the county street list, then pinned on the map. <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear.</div></div>
+    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Calls appear here as you hear them and are pinned on the map. Tap ▶ to hear a call again. Green pins are resolved.</div></div>
   </aside>
 
   <div id="side">
     <div id="locbar" class="glass">
       <form id="searchForm" role="search"><input id="searchInput" type="search" placeholder="Search an address or street" autocomplete="off" enterkeyhint="search" aria-label="Search address or cross-street"><button id="geoBtn" class="secondary icon" type="button" title="Use my location" aria-label="Use my location">◎</button><button id="pickBtn" class="secondary icon" type="button" title="Pick on map" aria-label="Pick a spot on the map">⌖</button></form>
       <div class="results" id="results"></div>
-      <div class="hint">Or tap anywhere on the map to set your zone there. You can drag the pin afterwards.</div>
+
     </div>
     <div id="zone" class="glass empty-zone">
-      <div class="lbl">YOUR ZONE <span id="radiusLbl">½ mi</span></div>
-      <div class="where" id="where">Set a location to get alerts when police are sent near it.</div>
+      <div class="lbl">YOUR ZONE <span><span id="radiusLbl">½ mi</span> <button type="button" class="linkbtn" id="zoneMore" aria-label="More zone options" style="min-height:22px;padding:0 4px">⋯</button></span></div>
+      <div class="where" id="where">Search, tap ◎, or tap the map to set your zone.</div>
       <div class="seg needloc" id="radiusSeg">
         <button type="button" data-r="0.25">¼ mi</button><button type="button" data-r="0.5">½ mi</button><button type="button" data-r="1">1 mi</button><button type="button" data-r="2">2 mi</button><button type="button" data-r="5">5 mi</button>
       </div>
@@ -399,7 +412,7 @@ async function loadStreetData(){
 let COUNTY=null;
 function inCountyPt(lat,lon){if(!COUNTY)return lat>BBOX.s&&lat<BBOX.n&&lon>BBOX.w&&lon<BBOX.e;let c=false;for(let i=0,j=COUNTY.length-1;i<COUNTY.length;j=i++){const a=COUNTY[i],b=COUNTY[j];if((a[0]>lat)!==(b[0]>lat)&&lon<(b[1]-a[1])*(lat-a[0])/(b[0]-a[0])+a[1])c=!c}return c}
 // Places dispatch names without an address (coordinates from OpenStreetMap)
-const LANDMARKS=[["Cuesta Grade", "cuesta (grade|pass|summit)", 35.3489, -120.6309, 1], ["Madonna Inn", "madonna inn", 35.267, -120.6752, 0], ["Cal Poly", "cal poly", 35.3075, -120.6646, 1], ["Cuesta College", "cuesta college", 35.329, -120.7406, 0], ["Morro Rock", "morro rock", 35.3697, -120.8677, 0], ["Hearst Castle", "hearst castle", 35.6487, -121.1858, 0], ["Pismo Pier", "pismo (beach )?pier", 35.1383, -120.6446, 0], ["Avila Pier", "avila (beach )?pier", 35.1766, -120.7345, 0], ["Oceano Dunes", "oceano dunes|the dunes", 35.0467, -120.6125, 1], ["Santa Margarita Lake", "santa margarita lake", 35.3286, -120.4824, 1], ["Diablo Canyon", "diablo canyon|diablo power", 35.2118, -120.8547, 1], ["Men's Colony", "men'?s colony|\\bcmc\\b", 35.324, -120.7025, 0], ["SLO Airport", "(slo|san luis|county) airport", 35.2375, -120.6433, 0], ["Paso Airport", "paso (robles )?airport", 35.6756, -120.6306, 0], ["Atascadero State Hospital", "atascadero state hospital|state hospital", 35.4639, -120.6348, 0], ["Sierra Vista Hospital", "sierra vista", 35.2924, -120.6659, 0], ["Twin Cities Hospital", "twin cities", 35.5551, -120.7201, 0], ["Arroyo Grande Hospital", "arroyo grande (community )?hospital", 35.1133, -120.5904, 0], ["Camp San Luis", "camp san luis", 35.338, -120.6982, 1], ["Camp Roberts", "camp roberts", 35.7908, -120.7782, 1], ["Mid-State Fair", "mid-? ?state fair|event center|fairgrounds", 35.6381, -120.6875, 0], ["County Jail", "county jail|\\bthe jail\\b", 35.3208, -120.7272, 0], ["Laguna Lake", "laguna lake", 35.2655, -120.6906, 1], ["Montana de Oro", "montana de oro|montaña de oro", 35.2938, -120.8616, 1], ["Shell Beach", "shell beach", 35.1553, -120.6724, 1], ["Mission San Luis Obispo", "mission san luis|mission plaza", 35.2808, -120.665, 0], ["Mission San Miguel", "mission san miguel", 35.7444, -120.6979, 0], ["Spooner's Cove", "spooner'?s cove", 35.2744, -120.8883, 0], ["Dinosaur Caves", "dinosaur caves", 35.1537, -120.6646, 0], ["Port San Luis", "port san luis|harford pier", 35.1714, -120.7565, 0], ["Bishop Peak", "bishop'?s? peak", 35.3023, -120.6977, 1], ["Cerro San Luis", "cerro san luis|madonna mountain", 35.2828, -120.6804, 1], ["Whale Rock", "whale rock", 35.4583, -120.8691, 1], ["Lake Nacimiento", "(lake )?nacimiento", 35.7305, -120.8694, 1], ["Carrizo Plain", "carrizo plain", 35.1146, -119.7234, 1], ["Pozo", "\\bpozo\\b", 35.3037, -120.3762, 1], ["Parkfield", "\\bparkfield\\b", 35.8996, -120.4326, 1], ["Cholame", "\\bcholame\\b", 35.7239, -120.2965, 1], ["Shandon", "\\bshandon\\b", 35.653, -120.3818, 1]].map(([name,rx,lat,lon,area])=>({name,re:new RegExp("\\b("+rx+")","i"),lat,lon,area:!!area}));
+const LANDMARKS=[["Cuesta Grade", "cuesta (grade|pass|summit)", 35.3489, -120.6309, 1], ["Madonna Inn", "madonna inn", 35.267, -120.6752, 0], ["Cal Poly", "cal poly", 35.3075, -120.6646, 1], ["Cuesta College", "cuesta college", 35.329, -120.7406, 0], ["Morro Rock", "morro rock", 35.3697, -120.8677, 0], ["Hearst Castle", "hearst castle", 35.6487, -121.1858, 0], ["Pismo Pier", "pismo (beach )?pier", 35.1383, -120.6446, 0], ["Avila Pier", "avila (beach )?pier", 35.1766, -120.7345, 0], ["Oceano Dunes", "oceano dunes|the dunes", 35.0467, -120.6125, 1], ["Santa Margarita Lake", "santa margarita lake", 35.3286, -120.4824, 1], ["Diablo Canyon", "diablo canyon|diablo power", 35.2118, -120.8547, 1], ["Men's Colony", "men'?s colony|\\bcmc\\b", 35.324, -120.7025, 0], ["SLO Airport", "(slo|san luis|county) airport", 35.2375, -120.6433, 0], ["Paso Airport", "paso (robles )?airport", 35.6756, -120.6306, 0], ["Atascadero State Hospital", "atascadero state hospital|state hospital", 35.4639, -120.6348, 0], ["Sierra Vista Hospital", "sierra vista", 35.2924, -120.6659, 0], ["Twin Cities Hospital", "twin cities", 35.5551, -120.7201, 0], ["Arroyo Grande Hospital", "arroyo grande (community )?hospital", 35.1133, -120.5904, 0], ["Camp San Luis", "camp san luis", 35.338, -120.6982, 1], ["Camp Roberts", "camp roberts", 35.7908, -120.7782, 1], ["Mid-State Fair", "mid-? ?state fair|event center|fairgrounds", 35.6381, -120.6875, 0], ["County Jail", "county jail|\\bthe jail\\b", 35.3208, -120.7272, 0], ["Laguna Lake", "laguna lake", 35.2655, -120.6906, 1], ["Montana de Oro", "montana de oro|montaña de oro", 35.2938, -120.8616, 1], ["Shell Beach", "shell beach", 35.1553, -120.6724, 1], ["Mission San Luis Obispo", "mission san luis|mission plaza", 35.2808, -120.665, 0], ["Mission San Miguel", "mission san miguel", 35.7444, -120.6979, 0], ["Spooner's Cove", "spooner'?s cove", 35.2744, -120.8883, 0], ["Dinosaur Caves", "dinosaur caves", 35.1537, -120.6646, 0], ["Port San Luis", "port san luis|harford pier", 35.1714, -120.7565, 0], ["Bishop Peak", "bishop'?s? peak", 35.3023, -120.6977, 1], ["Cerro San Luis", "cerro san luis|madonna mountain", 35.2828, -120.6804, 1], ["Whale Rock", "whale rock", 35.4583, -120.8691, 1], ["Lake Nacimiento", "lake nacimiento|nacimiento lake(?! drive)", 35.7305, -120.8694, 1], ["Carrizo Plain", "carrizo plain", 35.1146, -119.7234, 1], ["Pozo", "\\bpozo\\b", 35.3037, -120.3762, 1], ["Parkfield", "\\bparkfield\\b", 35.8996, -120.4326, 1], ["Cholame", "\\bcholame\\b", 35.7239, -120.2965, 1], ["Shandon", "\\bshandon\\b", 35.653, -120.3818, 1]].map(([name,rx,lat,lon,area])=>({name,re:new RegExp("\\b("+rx+")(?!\\s+(road|rd|street|st|avenue|ave|drive|dr|lane|ln|way|boulevard|blvd|court|ct|place|circle|highway|hwy)\\b)","i"),lat,lon,area:!!area}));
 const landmarkIn=text=>LANDMARKS.find(l=>l.re.test(text))||null;
 const landmarkGeo=l=>({g:{lat:l.lat,lon:l.lon,precise:!l.area,label:l.name},loc:{label:l.name,type:'landmark',words:l.name.toLowerCase().split(' ')}});
 // Named roads in neighboring counties, offered to the AI check when a road isn't in SLO County
@@ -648,11 +661,13 @@ async function claudeReview(entry){
 const geoCache=new Map();let nomChain=Promise.resolve(),nomLast=0;
 function nominatim(path,params){
   const p=nomChain.then(async()=>{const wait=1100-(Date.now()-nomLast);if(wait>0)await sleep(wait);nomLast=Date.now();
+    const region=!!params._region;delete params._region;
     const u=new URL('https://nominatim.openstreetmap.org/'+path);Object.entries({format:'jsonv2',...params}).forEach(([k,v])=>u.searchParams.set(k,v));
-    const r=await fetch(u,{signal:timeoutSignal(12000)});const j=r.ok?await r.json():[];return path==='search'?j.filter(h=>inRegion(+h.lat,+h.lon)).sort((a,b)=>inCountyPt(+b.lat,+b.lon)-inCountyPt(+a.lat,+a.lon)):j});
+    const r=await fetch(u,{signal:timeoutSignal(12000)});const j=r.ok?await r.json():[];return path==='search'?j.filter(h=>region?inRegion(+h.lat,+h.lon):inCountyPt(+h.lat,+h.lon)):j});
   nomChain=p.catch(()=>{});return p;
 }
-const searchParams=extra=>({limit:'5',countrycodes:'us',bounded:'1',viewbox:`${REGION.w},${REGION.n},${REGION.e},${REGION.s}`,...extra});
+const searchParams=extra=>({limit:'5',countrycodes:'us',bounded:'1',viewbox:`${BBOX.w},${BBOX.n},${BBOX.e},${BBOX.s}`,...extra}); // SLO County first
+const regionParams=extra=>({...searchParams(extra),viewbox:`${REGION.w},${REGION.n},${REGION.e},${REGION.s}`,_region:1}); // nearby counties
 async function geocode(loc,town){
   const key=JSON.stringify([loc.label,town]);if(geoCache.has(key))return geoCache.get(key);
   let res=null;
@@ -679,7 +694,7 @@ const AI_MODELS=['openai/gpt-oss-120b','openai/gpt-oss-20b','qwen/qwen3.8-27b'];
 const aiLimitedUntil={};
 const AI_SYS=`You check speech-to-text transcripts of San Luis Obispo County, California sheriff, police and fire radio. Return JSON only.
 Input: the new transcript, words the recognizer was unsure of, recent calls on the same channel (newest last), and real SLO County street names that sound like words in the transcript (with their town).
-Output: {"text": string, "location": null | {"number": string|null, "street": string|null, "cross": string|null, "town": string|null, "place": string|null}, "confidence": "high"|"medium"|"low"}
+Output: {"text": string, "location": null | {"number": string|null, "street": string|null, "cross": string|null, "town": string|null, "place": string|null}, "confidence": "high"|"medium"|"low", "same_incident": string|null, "resolves": string|null}
 Rules:
 - "text": the transcript with only clear mishearings fixed (street/town names, unit IDs, codes). Keep every word and the punctuation, including the unit or town at the start; never remove, add or invent content.
 - Unit call signs are not addresses: a number with a phonetic word like "23 Adam", "Adam 6-2", "3 Lincoln 12", "Paul 7", "Mary 40", "Sam 2" names a patrol unit.
@@ -689,11 +704,13 @@ Rules:
 - Calls can also be in neighboring counties. If a numbered address names a road that is not in the list, give the real road in this region that best matches what was heard (speech recognition often swaps similar-sounding words), and include its town if known.
 - Use "place" for a business or landmark ("car lot", "Costco", "Cal Poly", "the Madonna Inn"). If a candidate is marked "(known place)" and the call is at or on it ("on the Cuesta Grade"), put it in "place".
 - If the transcript only refers back to an earlier call ("same location", "on scene"), use that call's location.
+- "same_incident": the incident id (from recent calls) this transmission is about, if it continues one (same place, same units, "on scene", "arrived"); else null.
+- "resolves": the incident id this transmission says is finished ("10-8", "code 4", "clear", "GOA", "UTL", "cancel", "disregard", "report to follow", "in custody", "back in service"), matched by unit call sign or place; else null.
 - Most calls are in San Luis Obispo County. If unsure, prefer null over a guess.`;
 const aiOn=()=>$('optAI').checked&&!!store.get('sttKey_groq','');
 // worth checking: anything that might carry a place (numbers, names, towns) or that the recognizer was unsure of
 const FOLLOWUP=/\b(on scene|same (location|address|place)|arriv\w*|10-97|that (location|address)|out (there|with)|there now|on location)\b/i;
-function needsCheck(text,unc){const w=wordsOf(text);if(FOLLOWUP.test(text)&&lines.some(l=>l.inc&&Date.now()-l.time<15*60e3))return true;return w.some(x=>/^\d{2,}/.test(x))||(unc&&unc.size>0)||/\b[A-Z][a-z]{2,}/.test(text.replace(/^\W*\w+/,''))||w.some(x=>!COMMON_EN.has(x)&&x.length>3&&!PHONETIC.has(x))}
+function needsCheck(text,unc){const w=wordsOf(text);if((FOLLOWUP.test(text)||RESOLVE.test(text))&&incidents.some(i=>i.status==='active'&&!i.gone))return true;return w.some(x=>/^\d{2,}/.test(x))||(unc&&unc.size>0)||/\b[A-Z][a-z]{2,}/.test(text.replace(/^\W*\w+/,''))||w.some(x=>!COMMON_EN.has(x)&&x.length>3&&!PHONETIC.has(x))}
 const streetTownCache=new Map();
 function townAt(la,lo){let t=null,best=9000;for(const[k,v]of Object.entries(TOWNS)){if(TOWN_FULL[k]||k.length<5)continue;const d=dist([la,lo],v);if(d<best){best=d;t=k}}return t}
 function streetTowns(name){ // every town a street name appears in ("Ramona Avenue" is in Los Osos and Grover Beach)
@@ -718,7 +735,7 @@ function candidateStreets(text){
   return[...new Set(roads),...[...new Set(out)].slice(0,24).map(nm=>`${nm} (${streetTown(nm)})`)];
 }
 function recentCalls(entry){
-  const now=Date.now();return lines.filter(l=>l!==entry&&l.final&&now-l.time<20*60e3).slice(-8).map(l=>`[${fmtTime(l.time).slice(0,5)}] ${l.text}${l.inc?' → '+l.inc.label:''}`);
+  const now=Date.now();return lines.filter(l=>l!==entry&&l.final&&now-l.time<20*60e3).slice(-8).map(l=>`[${fmtTime(l.time).slice(0,5)}${l.inc?' incident '+l.inc.id+(l.inc.status==='resolved'?' (resolved)':''):''}] ${l.text}${l.inc?' → '+l.inc.label:''}`);
 }
 async function aiCheck(entry){
   const cands=candidateStreets(entry.text);
@@ -778,7 +795,7 @@ async function resolveAI(loc){
   let g=null,label='';
   const outside=!st&&loc.street&&!hs&&loc.number?String(loc.street).replace(/\s*\([^)]*\)\s*$/,''):null;
   if(outside&&/^\d{1,6}$/.test(String(loc.number))){
-    const p=searchParams({limit:'1',street:`${loc.number} ${outside}`,state:'California'});if(loc.town)p.city=String(loc.town);
+    const p=regionParams({limit:'1',street:`${loc.number} ${outside}`,state:'California'});if(loc.town)p.city=String(loc.town);
     try{let r=await nominatim('search',p);if(!r.length&&p.city){delete p.city;r=await nominatim('search',p)}if(r.length)return{g:{lat:+r[0].lat,lon:+r[0].lon,precise:true,label:`${loc.number} ${outside}`},loc:{label:`${loc.number} ${outside}`,type:'ai',words:[]}}}catch{}
   }
   if(st&&loc.number&&/^\d{1,6}$/.test(String(loc.number))){
@@ -860,22 +877,40 @@ L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxNativeZoo
 L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:19}).addTo(map);
 const incidentLayer=L.layerGroup().addTo(map);
 let me=null,meAcc=0,meMarker=null,meCircle=null,accCircle=null;
-const incidents=[];
-const pinColor=inc=>inc.inZone?'#ff4e5e':inc.precise?'#ff864e':'#e3b34f';
-const markerStyle=inc=>({radius:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.precise?.55:.28,dashArray:inc.precise?null:'4 3',bubblingMouseEvents:false});
+const incidents=[];let incSeq=0;
+const RESOLVED_SHOW=10*60e3,ACTIVE_SHOW=60*60e3; // resolved pins stay 10 min; others 1 hour after the last update
+const pinColor=inc=>inc.status==='resolved'?'#53ebb0':inc.inZone?'#ff4e5e':inc.precise?'#ff864e':'#e3b34f';
+const markerStyle=inc=>({radius:inc.precise?10:9,color:pinColor(inc),weight:2.5,fillColor:pinColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
 // keep popups clear of the floating panels
 function popPad(){const w=innerWidth<=760;return{autoPanPaddingTopLeft:w?[10,190]:[430,110],autoPanPaddingBottomRight:w?[10,innerHeight*0.35]:[390,30]}}
 function callPopup(entry,r){
-  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?' · '+esc(entry.kinds.join(', ')):''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate: street only)'}</small></div>`:''}</div>`;
+  const inc=entry&&entry.inc,n=inc?inc.entries.length:1,st=inc&&inc.status==='resolved'?'<span style="color:var(--green)"> · RESOLVED</span>':'';
+  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?' · '+esc(entry.kinds[0]):''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
 }
-function addIncident(entry,loc,g){
-  const inc={lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,time:entry.time,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())};
-  inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer).bindPopup(()=>callPopup(entry,{label:inc.label,precise:inc.precise}),{maxWidth:300,...popPad()});
+function addIncident(entry,loc,g,saved){
+  const inc=Object.assign({id:'i'+Date.now().toString(36)+(incSeq++),lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,time:+entry.time,lastAt:Date.now(),status:'active',resolvedAt:0,entries:[],units:new Set()},saved||{});
+  inc.entries=inc.entries||[];inc.units=new Set(inc.units||[]);inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());
+  inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer).bindPopup(()=>{const e=inc.entries[inc.entries.length-1];return e?callPopup(e,{label:inc.label,precise:inc.precise}):esc(inc.label)},{maxWidth:300,...popPad()});
   incidents.push(inc);
-  if(incidents.length>300){const old=incidents.shift();incidentLayer.removeLayer(old.marker)}
+  if(incidents.length>300)dropIncident(incidents[0]);
   return inc;
 }
-setInterval(()=>{const now=Date.now();for(const inc of incidents){const age=(now-inc.time)/36e5,o=Math.max(.25,1-age*.5);inc.marker.setStyle({opacity:o,fillOpacity:Math.max(.08,(inc.precise?.55:.28)*o)})}},60000);
+function dropIncident(inc){incidentLayer.removeLayer(inc.marker);const k=incidents.indexOf(inc);if(k>=0)incidents.splice(k,1);inc.gone=true}
+function resolveIncident(inc,entry){
+  if(!inc||inc.status==='resolved')return;
+  inc.status='resolved';inc.resolvedAt=Date.now();inc.marker.setStyle(markerStyle(inc));
+  for(const e of inc.entries)if(e.el)drawLine(e);
+  if(entry&&entry.el)drawLine(entry);
+  updateEdge();saveState();
+}
+// thin red border around the screen while a call in your zone is active
+function updateEdge(){document.body.classList.toggle('zone-active',incidents.some(i=>i.status==='active'&&i.inZone))}
+setInterval(()=>{ // expire pins; hide replay buttons older than 30 min
+  const now=Date.now();
+  for(const inc of[...incidents])if((inc.status==='resolved'&&now-inc.resolvedAt>RESOLVED_SHOW)||(inc.status!=='resolved'&&now-inc.lastAt>ACTIVE_SHOW))dropIncident(inc);
+  for(const l of lines)if(l.el&&l.clip&&now-l.time>CLIP_KEEP&&!l.clipExpired){l.clipExpired=true;drawLine(l)}
+  updateEdge();saveState();
+},30000);
 $('mbMe').onclick=()=>{if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,...fitPad()});else{$('searchInput').focus();$('where').textContent='Search an address, tap ◎, or tap the map to set your zone.'}};
 $('mbAll').onclick=()=>{const pts=incidents.map(i=>[i.lat,i.lon]);if(me)pts.push(me);if(pts.length>1)map.fitBounds(pts,{maxZoom:15,...fitPad()});else if(pts.length)map.setView(pts[0],15);else map.setView([35.28,-120.66],10)};
 function fitPad(){const w=innerWidth<=760;return w?{paddingTopLeft:[20,200],paddingBottomRight:[20,innerHeight*0.4]}:{paddingTopLeft:[440,110],paddingBottomRight:[390,40]}}
@@ -932,7 +967,7 @@ function refreshNearby(how){
   const w=$('where');w.classList.toggle('warn',!inCounty);
   w.textContent=!inCounty?'This spot is outside San Luis Obispo County, so calls on this feed won\'t be near it.':`${place||'Zone set'}${meAcc?` · ±${Math.round(meAcc)} m`:''}${how?` · ${how}`:''}`;
 }
-function recheckZone(){for(const inc of incidents){inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());inc.marker.setStyle(markerStyle(inc))}}
+function recheckZone(){for(const inc of incidents){inc.inZone=!!(me&&dist(me,[inc.lat,inc.lon])<=radiusM());inc.marker.setStyle(markerStyle(inc))}updateEdge()}
 function geoError(err){
   const ios=/iPhone|iPad/.test(navigator.userAgent),w=$('where');w.classList.add('warn');$('zone').classList.add('expanded');
   w.textContent=err&&err.code===1
@@ -961,7 +996,7 @@ $('searchForm').onsubmit=async e=>{
   e.preventDefault();const q=$('searchInput').value.trim();if(!q)return;const box=$('results');box.innerHTML='<div class="note">Searching…</div>';
   const items=[];
   const x=extract(q);if(SD.ready&&x.locs[0]&&x.locs[0].type==='cross'){const g=crossLocal(x.locs[0].a,x.locs[0].b,x.town);if(g)items.push({label:(g.label||x.locs[0].label)+(x.town?', '+townName(x.town):''),lat:g.lat,lon:g.lon})}
-  try{const r=await nominatim('search',searchParams({q}));for(const h of r)items.push({label:h.display_name.split(',').slice(0,3).join(','),lat:+h.lat,lon:+h.lon})}catch{}
+  try{let r=await nominatim('search',searchParams({q}));if(!r.length)r=await nominatim('search',regionParams({q}));for(const h of r)items.push({label:h.display_name.split(',').slice(0,3).join(','),lat:+h.lat,lon:+h.lon})}catch{}
   if(!items.length){box.innerHTML='<div class="note">No match in San Luis Obispo County. Try adding the town, like "1200 Higuera, San Luis Obispo".</div>';return}
   box.innerHTML='';
   const pick=it=>{box.innerHTML='';$('searchInput').value='';$('searchInput').blur();stopFollow();setLocation(it.lat,it.lon,'Address')};
@@ -981,7 +1016,7 @@ function setRadius(v,save=true){
 let rT;
 $('radiusSeg').onclick=e=>{const r=e.target.dataset.r;if(!r)return;setRadius(r);if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,...fitPad()});clearTimeout(rT);rT=setTimeout(()=>refreshNearby(),200)};
 $('radius').oninput=()=>{setRadius($('radius').value);clearTimeout(rT);rT=setTimeout(()=>{refreshNearby();if(meCircle)map.fitBounds(meCircle.getBounds(),{maxZoom:16,...fitPad()})},500)};
-$('where').onclick=()=>$('zone').classList.toggle('expanded');
+$('where').onclick=()=>$('zone').classList.toggle('expanded');$('zoneMore').onclick=()=>$('zone').classList.toggle('expanded');
 
 /* ================================================================
    ALERTS
@@ -989,7 +1024,7 @@ $('where').onclick=()=>$('zone').classList.toggle('expanded');
 let alertsOn=store.get('alertsOn',false),swReg=null,actx=null;
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').then(r=>swReg=r).catch(()=>{});
 function getCtx(){if(!actx){const C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C()}return actx}
-function paintAlertsBtn(){$('alertsBtn').textContent=alertsOn?'ALERTS ON':'ENABLE ALERTS';$('alertsBtn').classList.toggle('on',alertsOn)}
+function paintAlertsBtn(){const b=$('alertsBtn');b.textContent=alertsOn?'🔔':'🔕';b.title=alertsOn?'Alerts on. Tap to turn off.':'Alerts off. Tap to turn on.';b.setAttribute('aria-label',alertsOn?'Turn alerts off':'Turn alerts on');b.classList.toggle('on',alertsOn)}
 $('alertsBtn').onclick=async()=>{
   const c=getCtx();c&&c.resume&&c.resume();
   if(!alertsOn&&'Notification'in window&&Notification.permission==='default'){try{await Notification.requestPermission()}catch{}}
@@ -1044,17 +1079,21 @@ function renderText(entry){
   return html;
 }
 function drawLine(entry){
-  const el=entry.el;
-  el.className='line'+(entry.alert?' alert':'')+(entry.results.length?' located':'');
-  const tags=[
-    ...entry.kinds.map(k=>`<span class="tag">${k}</span>`),
-    ...(entry.zone?['<span class="tag al">IN YOUR ZONE</span>']:[]),
-    ...entry.hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
-    ...entry.results.map(r=>`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}${entry.followUp?` · same as ${fmtTime(entry.followUp.time).slice(0,5)} call`:''}</span>`),
-    ...(entry.locs.length&&!entry.results.length&&!entry.aiChecked?[`<span class="tag pend">couldn't map ${esc(entry.locs[0].label)}</span>`]:[]),
-    ...(entry.partial?['<span class="tag pend">● STILL TALKING…</span>']:entry.check?[`<span class="tag ok" title="${esc(entry.checkNote||'')}">${entry.check}</span>`]:[])
-  ];
-  el.innerHTML=`<div class="t">${fmtTime(entry.time)}</div><div class="x">${renderText(entry)}<div class="tags">${tags.join('')}</div></div>`;
+  const el=entry.el;if(!el)return;
+  const inc=entry.inc&&!entry.inc.gone?entry.inc:null,resolved=!!(inc&&inc.status==='resolved');
+  el.className='line'+(entry.alert&&!resolved?' alert':'')+(inc?' located':'')+(resolved?' resolved':'');
+  const tags=[];
+  if(entry.partial)tags.push('<span class="tag pend">● still talking…</span>');
+  if(entry.kinds.length)tags.push(`<span class="tag">${entry.kinds[0]}</span>`);
+  if(entry.results.length){const r=entry.results[0];tags.push(`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' ≈'}</span>`)}
+  if(entry.zone&&!resolved)tags.push('<span class="tag al">IN YOUR ZONE</span>');
+  else if(entry.hits.length&&!resolved)tags.push(`<span class="tag al" title="${esc(entry.hits.map(h=>h.name).join(', '))}">WATCHED STREET</span>`);
+  if(resolved)tags.push('<span class="tag ok">✓ RESOLVED</span>');
+  if(entry.resolvedInc&&entry.resolvedInc!==inc)tags.push(`<span class="tag ok">✓ closes ${esc(entry.resolvedInc.label)}</span>`);
+  const canPlay=entry.clip&&!entry.clipExpired&&Date.now()-entry.time<CLIP_KEEP;
+  const play=canPlay?`<button class="play${entry.playing?' on':''}" type="button" aria-label="${entry.playing?'Stop':'Play'} this call" title="${entry.playing?'Stop':'Hear this call'}">${entry.playing?'■':'▶'}</button>`:'';
+  const ok=entry.check&&!entry.partial?` <span class="chk" title="${esc(entry.checkNote||entry.check)}">✓</span>`:'';
+  el.innerHTML=`<div class="t">${fmtTime(entry.time).slice(0,5)}${play}</div><div class="x">${renderText(entry)}${ok}${tags.length?`<div class="tags">${tags.join('')}</div>`:''}</div>`;
 }
 // Text work, Claude review and mapping happen before the call is shown.
 async function prepare(entry,merged,info={}){
@@ -1075,13 +1114,14 @@ async function prepare(entry,merged,info={}){
   for(const loc of locs.slice(0,2)){const g=await geocode(town?loc:{...loc,_carried:true},ctxTown);if(g&&(inCountyPt(g.lat,g.lon)||(loc.type==='address'&&inRegion(g.lat,g.lon)))){entry.geo={loc,g};break}}
   {const l=landmarkIn(entry.text);if(l&&(!entry.geo||!entry.geo.g.precise||entry.geo.loc.type==='street')){entry.geo=landmarkGeo(l);entry.locs=[entry.geo.loc]}}
   // 2) AI check unless the local result is already solid (saves your free AI allowance)
-  const solid=entry.geo&&entry.geo.g.precise&&entry.geo.loc.type!=='street'&&!(entry.unc&&entry.unc.size)&&!FOLLOWUP.test(entry.text)&&inCountyPt(entry.geo.g.lat,entry.geo.g.lon)&&!/\b(highway|hwy|101|freeway|overcrossing|overpass|on-?ramp|off-?ramp)\b/i.test(entry.text);
+  const solid=!RESOLVE.test(entry.text)&&entry.geo&&entry.geo.g.precise&&entry.geo.loc.type!=='street'&&!(entry.unc&&entry.unc.size)&&!FOLLOWUP.test(entry.text)&&inCountyPt(entry.geo.g.lat,entry.geo.g.lon)&&!/\b(highway|hwy|101|freeway|overcrossing|overpass|on-?ramp|off-?ramp)\b/i.test(entry.text);
   if(!solid&&!info.partial&&!info.typed&&aiOn()&&SD.ready&&needsCheck(entry.text,entry.unc)){
     const ai=await aiCheck(entry);
     if(ai){
       const t=ai.text.trim(),ratio=t.length/Math.max(1,entry.text.length);
       const sameWords=wordsOf(t).join(' ')===wordsOf(entry.text).join(' '); // punctuation-only change: keep the original
       if(t&&!sameWords&&ratio>0.6&&ratio<1.6&&t!==entry.text&&keepsAllWords(entry.text,t)){entry.fixes=entry.fixes.concat(wordFixes(entry.text,t));entry.text=t;entry.unc=new Set()}
+      entry.sameAs=ai.same_incident||null;entry.resolves=ai.resolves||null;
       entry.aiChecked=true;entry.check='✓ AI CHECKED';entry.checkNote='Transcript and location checked against recent calls and the county street list'+(ai.confidence?` (${ai.confidence} confidence)`:'');
       const r=await resolveAI(ai.location);
       Object.assign(entry,{kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
@@ -1091,25 +1131,86 @@ async function prepare(entry,merged,info={}){
     }
   }
 }
+const RESOLVE=/\b(10-?8|10-?98|code ?4|all clear|i'?ll be clear|(we'?re|i'?m|be|show (me|us)) clear|clear(ed)? (the scene|from|here|of)|back in service|in service|cancel(l?ed)?|disregard|gone on arrival|goa|unable to locate|utl|report to follow|in custody|nothing found|negative contact|returning to (the )?(station|quarters))\b/i;
+// unit call signs: "23 Adam 6-2", "Adam 62", "Medic 41", "Engine 5", "Battalion 2"
+function callsigns(text){
+  const out=new Set(),t=text.toLowerCase().replace(/[,.;:!?]/g,' ');
+  const ph=[...PHONETIC].filter(w=>w.length>2).join('|');
+  for(const m of t.matchAll(new RegExp(`\\b(${ph})[\\s-]*(\\d{1,3}(?:[\\s-]\\d{1,3})?)\\b`,'g')))out.add(m[1]+m[2].replace(/\D/g,''));
+  for(const m of t.matchAll(/\b(medic|engine|battalion|truck|rescue|squad|car|unit)[\s-]*(\d{1,4})\b/g))out.add(m[1]+m[2]);
+  return out;
+}
+const CLIP_KEEP=30*60e3;
+const ClipDB={db:null,
+  open(){return this.db||(this.db=new Promise((res,rej)=>{const r=indexedDB.open('dispatch-watch',1);r.onupgradeneeded=()=>r.result.createObjectStore('clips');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))},
+  async put(id,blob){try{const db=await this.open();db.transaction('clips','readwrite').objectStore('clips').put({t:Date.now(),blob},id)}catch{}},
+  async get(id){try{const db=await this.open();return await new Promise(res=>{const q=db.transaction('clips').objectStore('clips').get(id);q.onsuccess=()=>res(q.result&&Date.now()-q.result.t<CLIP_KEEP?q.result.blob:null);q.onerror=()=>res(null)})}catch{return null}},
+  async prune(){try{const db=await this.open(),q=db.transaction('clips','readwrite').objectStore('clips').openCursor();q.onsuccess=()=>{const c=q.result;if(!c)return;if(Date.now()-c.value.t>CLIP_KEEP)c.delete();c.continue()}}catch{}}
+};
+let clipEl=null,clipEntry=null;
+function stopClip(){if(clipEl){clipEl.onpause=null;clipEl.pause();clipEl=null}if(clipEntry){clipEntry.playing=false;drawLine(clipEntry);clipEntry=null}if(PB.gain&&actx)PB.gain.gain.setTargetAtTime(1,actx.currentTime,0.2)}
+async function playClip(entry){
+  if(clipEntry===entry){stopClip();return}stopClip();
+  const blob=entry.clipAudio?encodeWav(entry.clipAudio):await ClipDB.get(entry.id);
+  if(!blob){entry.clipExpired=true;drawLine(entry);return}
+  const url=URL.createObjectURL(blob);clipEl=new Audio(url);clipEntry=entry;entry.playing=true;drawLine(entry);
+  if(PB.gain&&actx)PB.gain.gain.setTargetAtTime(0.12,actx.currentTime,0.05); // turn the live radio down while you listen
+  const done=()=>{URL.revokeObjectURL(url);if(clipEntry===entry)stopClip()};clipEl.onended=done;clipEl.onpause=done;
+  clipEl.play().catch(done);
+}
+// ---------------- remember calls and pins between sessions ----------------
+let saveT;
+function saveState(){clearTimeout(saveT);saveT=setTimeout(()=>{const now=Date.now();
+  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units]}));
+  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null}));
+  store.set('dw_state',{v:1,saved:now,incs,lines:ls});
+},800)}
+function restoreState(){
+  const st=store.get('dw_state',null);if(!st||!st.lines)return;const now=Date.now(),byId=new Map();
+  for(const x of st.incs||[]){if((x.status==='resolved'&&now-x.resolvedAt>RESOLVED_SHOW)||(x.status!=='resolved'&&now-x.lastAt>ACTIVE_SHOW))continue;
+    byId.set(x.id,addIncident({time:new Date(x.time)},{label:x.label},{lat:x.lat,lon:x.lon,precise:x.precise,label:x.label},x))}
+  for(const x of st.lines.sort((a,b)=>a.time-b.time)){if(now-x.time>ACTIVE_SHOW)continue;
+    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip};
+    const inc=x.inc&&byId.get(x.inc);if(inc){e.inc=inc;inc.entries.push(e)}
+    if(x.resolvedInc&&byId.get(x.resolvedInc))e.resolvedInc=byId.get(x.resolvedInc);
+    reveal(e);
+  }
+  updateEdge();
+}
 // Put the call on screen, or update it if more of the call has arrived.
 function reveal(entry){
   const first=!entry.revealed;entry.revealed=true;
   if(first){
     $('emptyMsg')&&$('emptyMsg').remove();
     entry.el=document.createElement('div');lines.push(entry);
-    entry.el.addEventListener('click',()=>{if(!entry.inc)return;map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();if(innerWidth<=760)setSheet(false)});
+    entry.el.addEventListener('click',e=>{
+      if(e.target.closest('.play')){playClip(entry);return}
+      if(!entry.inc||entry.inc.gone)return;map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();if(innerWidth<=760)setSheet(false)});
     const box=$('transcript'),atTop=box.scrollTop<40;box.prepend(entry.el);if(atTop)box.scrollTop=0;
     while(box.children.length>400)box.lastChild.remove();
     $('tCount').textContent='· '+lines.length;
   }
   entry.results=[];
   let newPin=false;
-  if(entry.geo){const{loc,g}=entry.geo,label=g.label||loc.label;
-    const same=!entry.inc&&lines.find(l=>l!==entry&&l.inc&&Date.now()-l.time<20*60e3&&dist([l.inc.lat,l.inc.lon],[g.lat,g.lon])<60);
-    if(same){entry.inc=same.inc;entry.followUp=same;entry.alerted=true}
-    else if(!entry.inc){entry.inc=addIncident(entry,loc,g);newPin=true}
-    else{Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())});entry.inc.marker.setLatLng([g.lat,g.lon]).setStyle(markerStyle(entry.inc))}
-    entry.results.push({...g,label,inc:entry.inc});entry.zone=entry.inc.inZone}
+  entry.units=callsigns(entry.text);
+  // the AI check (or a shared unit call sign) says this call continues an earlier one
+  if(!entry.inc&&entry.sameAs){const t=incidents.find(i=>i.id===entry.sameAs&&!i.gone);if(t&&(!entry.geo||dist([t.lat,t.lon],[entry.geo.g.lat,entry.geo.g.lon])<400)){entry.inc=t;entry.followUp=t.entries[t.entries.length-1]||null;entry.alerted=true}}
+  if(entry.geo&&!entry.inc){const{loc,g}=entry.geo,label=g.label||loc.label;
+    const same=incidents.find(i=>!i.gone&&i.status==='active'&&Date.now()-i.lastAt<20*60e3&&dist([i.lat,i.lon],[g.lat,g.lon])<60);
+    if(same){entry.inc=same;entry.followUp=same.entries[same.entries.length-1]||null;entry.alerted=true}
+    else{entry.inc=addIncident(entry,loc,g);newPin=true}
+  }
+  if(entry.inc&&!entry.inc.entries.includes(entry)){entry.inc.entries.push(entry);entry.inc.lastAt=Date.now();for(const u of entry.units)entry.inc.units.add(u)}
+  // move the pin only when this call created it (its full version arrived) or it pins the place more precisely
+  if(entry.geo&&entry.inc&&!newPin&&(entry.inc.entries[0]===entry||(entry.geo.g.precise&&!entry.inc.precise))){const{loc,g}=entry.geo;
+    Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())});entry.inc.marker.setLatLng([g.lat,g.lon]).setStyle(markerStyle(entry.inc))}
+  if(entry.inc){entry.results.push({lat:entry.inc.lat,lon:entry.inc.lon,precise:entry.inc.precise,label:entry.inc.label,inc:entry.inc});entry.zone=entry.inc.inZone}
+  // "10-8", "code 4", "clear"...: mark the call it refers to as resolved
+  if(entry.final&&RESOLVE.test(entry.text)&&!entry.resolvedChecked){entry.resolvedChecked=true;
+    let t=entry.resolves?incidents.find(i=>i.id===entry.resolves&&!i.gone):null;
+    if(!t&&entry.units.size)t=[...incidents].reverse().find(i=>!i.gone&&i.status==='active'&&Date.now()-i.lastAt<ACTIVE_SHOW&&[...entry.units].some(u=>i.units.has(u)));
+    if(!t&&entry.inc&&entry.inc.status==='active')t=entry.inc;
+    if(t){entry.resolvedInc=t;resolveIncident(t,entry)}}
   entry.alert=!!(entry.zone||entry.hits.length);
   drawLine(entry);
   if(entry.inc&&entry.inc.marker.isPopupOpen&&entry.inc.marker.isPopupOpen())entry.inc.marker.setPopupContent(callPopup(entry,{label:entry.inc.label,precise:entry.inc.precise}));
@@ -1120,13 +1221,14 @@ function reveal(entry){
     if(!me&&!inView&&!busy){map.panTo([entry.inc.lat,entry.inc.lon]);setTimeout(()=>entry.inc.marker.openPopup(),400)}
     else if(inView&&!busy)entry.inc.marker.openPopup();
   }
+  updateEdge();saveState();
   if(entry.alerted)return;
   if(entry.zone){entry.alerted=true;const g=entry.geo.g;raiseAlert('POLICE ACTIVITY NEAR YOU',`${entry.inc.label} (${(dist(me,[g.lat,g.lon])/MILE).toFixed(2)} mi away)${entry.kinds.length?' · '+entry.kinds.join(', '):''}: “${entry.text}”`,[g.lat,g.lon],`Police activity near you. ${entry.kinds.length?entry.kinds[0].toLowerCase()+' at ':''}${entry.inc.label.replace(/\(.*?\)/g,'')}, ${(dist(me,[g.lat,g.lon])/MILE).toFixed(1)} miles away.`)}
   else if(entry.hits.length){entry.alerted=true;raiseAlert('WATCHED STREET MENTIONED',`${entry.hits.map(h=>h.name).join(', ')}: “${entry.text}”`,entry.inc?[entry.inc.lat,entry.inc.lon]:null)}
 }
-async function handleTyped(text){const e={time:new Date(),streamT:null};await prepare(e,{text,unc:new Set(),agree:true},{typed:true});reveal(e)}
+async function handleTyped(text){const e={id:'t'+Date.now().toString(36),time:new Date(),streamT:null,final:true};await prepare(e,{text,unc:new Set(),agree:true},{typed:true});reveal(e)}
 $('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim();if(v){handleTyped(v);$('testInput').value='';$('settingsDlg').close()}};
-$('clearBtn').onclick=()=>{lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0};
+$('clearBtn').onclick=()=>{lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0;store.del('dw_state');updateEdge()};
 $('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
 // Phone sheet
 function setSheet(open){$('feed').classList.toggle('open',open);document.body.classList.toggle('sheet-open',open)}
@@ -1206,7 +1308,7 @@ function keyTerms(){ // words for Deepgram to listen for
   return[...new Set([...near,'Higuera','Foothill','Santa Rosa','Madonna','Los Osos Valley','Tank Farm','Broad','El Camino Real','Grand','Niblick','Morro Bay','Paso Robles','Atascadero','Templeton','Arroyo Grande','Grover Beach','Pismo Beach','Los Osos','Nipomo','Oceano','Cambria','Avila Beach','Cal Poly','San Luis Obispo'])];
 }
 let cloudPause=0,cloudBlocked=false,inflight=0;
-const entriesByTx=new Map();
+const entriesByTx=new Map();let idSeq=0;
 async function handleCloud(item){
   const prov=PROVIDERS[engine()],key=sttKey(),wav=encodeWav(item.audio);
   aiStatus('TRANSCRIBING');
@@ -1232,8 +1334,8 @@ async function handleCloud(item){
 async function showCall(item,merged,info){
   let entry=item.tx!=null?entriesByTx.get(item.tx):null;
   if(entry&&entry.final&&item.partial)return; // the full call already arrived
-  if(!entry){entry={time:item.wall?new Date(item.wall):new Date(),streamT:item.t,tx:item.tx,playAt:PB.on?item.wall:0};if(item.tx!=null)entriesByTx.set(item.tx,entry);if(entriesByTx.size>300)entriesByTx.delete(entriesByTx.keys().next().value)}
-  entry.partial=!!item.partial;if(!item.partial)entry.final=true;
+  if(!entry){entry={id:'c'+Date.now().toString(36)+(++idSeq),time:item.wall?new Date(item.wall):new Date(),streamT:item.t,tx:item.tx,playAt:PB.on?item.wall:0};if(item.tx!=null)entriesByTx.set(item.tx,entry);if(entriesByTx.size>300)entriesByTx.delete(entriesByTx.keys().next().value)}
+  entry.partial=!!item.partial;if(!item.partial){entry.final=true;if(item.audio){entry.clip=true;entry.clipAudio=item.audio;ClipDB.put(entry.id,encodeWav(item.audio))}}
   await prepare(entry,merged,info);
   if(entry.final&&item.partial)return;
   schedule(entry);
@@ -1581,7 +1683,9 @@ $('sens').value=store.get('sens',6);$('sensLbl').textContent=$('sens').value+'/1
 setRadius(store.get('radius',0.5),false);
 buildStreetIndex(BUILTIN.split('|'));
 store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
-const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0);
+const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0,true);
+restoreState();ClipDB.prune();
+if(saved)map.fitBounds(meCircle.getBounds(),{maxZoom:16,...fitPad()});
 gpuCheck.then(paintModels);
 aiStatus(engine()==='device'?'ON-DEVICE':sttKey()?'READY · '+PROVIDERS[engine()].name.split(' ·')[0]:'NEEDS KEY');
 setTimeout(loadStreetData,100);
