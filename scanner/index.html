@@ -1325,6 +1325,8 @@ $('keySave').onclick=()=>{const v=$('apiKey').value.trim();if(!v||v.startsWith('
 /* ================================================================
    INIT
    ================================================================ */
+// One-time private setup link: …/scanner/#groq=KEY saves the key in this browser, then removes it from the address bar.
+(()=>{const m=location.hash.match(/^#(?:groq|key)=(gsk_[A-Za-z0-9]+)/);if(m){store.set('sttKey_groq',m[1]);store.set('engine','groq');history.replaceState(null,'',location.pathname+location.search)}})();
 paintAlertsBtn();
 $('optSound').checked=store.get('sound',true);$('optDouble').checked=store.get('double',true);
 $('sens').value=store.get('sens',6);$('sensLbl').textContent=$('sens').value+'/10';
