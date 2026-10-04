@@ -205,7 +205,7 @@
   <aside id="feed" class="glass" aria-label="Live transcript">
     <div class="grab"></div>
     <div class="phead" id="feedHead">LIVE TRANSCRIPT <span class="muted" id="tCount"></span><span class="muted" id="upcoming"></span><span class="spacer"></span><button class="secondary" id="feedToggle" type="button" aria-label="Collapse transcript">▴</button></div>
-    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Calls appear here and on the map as you hear them. Each one is transcribed on your device and double-checked: heard twice, compared, and street names matched to the county street list. <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear.</div></div>
+    <div id="transcript"><div class="empty" id="emptyMsg"><b>Tap START LISTENING.</b> Each radio call is transcribed about a second after it ends, then pinned on the map. Long calls show up while they're still being spoken. Street and town names are checked against the county street list. <span class="fix">Underlined</span> words were corrected; <span class="unc">dotted</span> words were unclear.</div></div>
   </aside>
 
   <div id="side">
@@ -242,13 +242,23 @@
     <div class="modal-head">SETTINGS<button type="button" data-close aria-label="Close">×</button></div>
     <div class="modal-body">
       <div>
-        <div class="lbl">LISTENING</div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <label class="switch"><input type="checkbox" id="optSound" checked><span>Play radio sound<small>Transcripts appear in step with what you hear. Turn sound off to see them as soon as they're ready.</small></span></label>
-          <label class="switch"><input type="checkbox" id="optDouble" checked><span>Double-check each call<small>Hears every call twice and compares. More accurate; skipped automatically if calls pile up.</small></span></label>
+        <div class="lbl">TRANSCRIPTION</div>
+        <select id="engine" aria-label="Transcription service">
+          <option value="groq">Groq · Whisper Large v3 (free, recommended)</option>
+          <option value="deepgram">Deepgram · Nova-3</option>
+          <option value="openai">OpenAI · GPT-4o Transcribe</option>
+          <option value="device">On this device (no key; big download, less accurate)</option>
+        </select>
+        <div id="keyBox" style="margin-top:8px">
+          <div class="row"><input id="sttKey" type="password" placeholder="Paste API key" autocomplete="off"><button class="secondary fit" id="sttKeySave" type="button">SAVE</button></div>
+          <div class="mnote" id="engineNote"></div>
+        </div>
+        <div id="deviceBox" style="margin-top:8px;display:none">
+          <select id="model" aria-label="On-device model"></select><div class="mnote" id="modelNote"></div>
+          <label class="switch" style="margin-top:10px"><input type="checkbox" id="optDouble" checked><span>Double-check each call<small>Hears every call twice and compares. More accurate, twice the work.</small></span></label>
         </div>
       </div>
-      <div><div class="lbl">SPEECH MODEL</div><select id="model"></select><div class="mnote" id="modelNote"></div></div>
+      <div><div class="lbl">RADIO</div><label class="switch"><input type="checkbox" id="optSound" checked><span>Play radio sound<small>Turn off to transcribe silently.</small></span></label></div>
       <div><div class="lbl">VOICE DETECTION <span id="sensLbl"></span></div><input id="sens" type="range" min="1" max="10" step="1" value="6" aria-label="Voice detection sensitivity"></div>
       <div id="watchSec">
         <div class="lbl">WATCHED STREETS <span id="watchN2"></span></div>
@@ -257,13 +267,28 @@
       </div>
       <div>
         <div class="lbl">CLAUDE CHECK (OPTIONAL)</div>
-        <label class="switch"><input type="checkbox" id="optClaude"><span>Have Claude review each call<small>Fixes remaining mishearings using both hearings. Needs your own Anthropic API key, saved only in this browser and sent only to Anthropic. A fraction of a cent per call.</small></span></label>
+        <label class="switch"><input type="checkbox" id="optClaude"><span>Have Claude review each call<small>Fixes remaining mishearings, like odd street names. Needs your own Anthropic API key, saved only in this browser and sent only to Anthropic. A fraction of a cent per call.</small></span></label>
         <div class="row" style="margin-top:8px"><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"><button class="secondary fit" id="keySave" type="button">SAVE</button></div>
         <div class="note" id="keyNote"></div>
       </div>
       <div><div class="lbl">TEST A PHRASE</div><form id="testForm" class="row"><input id="testInput" type="text" placeholder="e.g. 415 at 900 block of Ramona, Grover"><button class="secondary fit" type="submit">RUN</button></form></div>
       <div><div class="lbl">TRANSCRIPT</div><div class="row"><button class="secondary" id="exportBtn" type="button">EXPORT TEXT</button><button class="secondary" id="clearBtn" type="button">CLEAR</button><button class="secondary" id="fallback" type="button">FALLBACK PLAYER</button></div></div>
       <div class="note" id="streetNote">Loading county streets…</div>
+    </div>
+  </dialog>
+
+  <dialog id="setupDlg" aria-label="Turn on transcripts">
+    <div class="modal-head">TURN ON FAST, ACCURATE TRANSCRIPTS<button type="button" data-close aria-label="Close">×</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:#cfe3ec;line-height:1.55">The radio is playing. To transcribe it quickly and accurately, connect a free Groq account. It takes about a minute, and you only do it once.</p>
+      <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.7;color:#cfe3ec">
+        <li>Open <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:var(--cyan)">console.groq.com/keys</a> and sign in (Google or GitHub works).</li>
+        <li>Choose <b>Create API Key</b>, give it any name, and copy it.</li>
+        <li>Paste it here:</li>
+      </ol>
+      <div class="row"><input id="setupKey" type="password" placeholder="gsk_…" autocomplete="off" aria-label="Groq API key"><button id="setupSave" class="fit" type="button">START TRANSCRIBING</button></div>
+      <div class="note" id="setupNote">Your key is saved only in this browser and sent only to Groq. Each call is transcribed in about a second.</div>
+      <button class="secondary" id="setupDevice" type="button" style="white-space:normal;line-height:1.3;padding:8px 12px">NO KEY? USE ON-DEVICE INSTEAD (SLOWER, LESS ACCURATE)</button>
     </div>
   </dialog>
 
@@ -513,8 +538,9 @@ function cleanText(t){
   return t;
 }
 function promptEcho(t){ // the primed hearing repeating the word list back on noise
-  const w=wordsOf(t),p=wordsOf(currentPrompt);if(w.length<4)return false;
-  for(let i=0;i+4<=w.length;i++){const g=w.slice(i,i+4).join(' ');if(p.join(' ').includes(g))return true}return false;
+  // only a long verbatim run (7+ words) counts; real calls can share a few words with the examples
+  const w=wordsOf(t),p=' '+wordsOf(currentPrompt).join(' ')+' ';if(w.length<7)return false;
+  for(let i=0;i+7<=w.length;i++){if(p.includes(' '+w.slice(i,i+7).join(' ')+' '))return true}return false;
 }
 function reconcile(primed,plain){
   if(primed&&promptEcho(primed))primed='';
@@ -665,7 +691,7 @@ const MODELS={
 };
 let HAS_GPU=false;
 const gpuCheck=(async()=>{try{HAS_GPU=!!(navigator.gpu&&await navigator.gpu.requestAdapter())}catch{HAS_GPU=false}})();
-function defaultModel(){return HAS_GPU&&!IS_PHONE?'turbo':'small'}
+function defaultModel(){return HAS_GPU?'small':'base'}
 
 /* ================================================================
    MAP (full screen)
@@ -860,7 +886,7 @@ function drawLine(entry){
     ...entry.hits.map(h=>`<span class="tag al">WATCH: ${esc(h.name)}</span>`),
     ...entry.results.map(r=>`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' (approx.)'}</span>`),
     ...(entry.locs.length&&!entry.results.length?[`<span class="tag pend">couldn't map ${esc(entry.locs[0].label)}</span>`]:[]),
-    ...(entry.check?[`<span class="tag ok" title="${esc(entry.checkNote||'')}">${entry.check}</span>`]:[])
+    ...(entry.partial?['<span class="tag pend">● STILL TALKING…</span>']:entry.check?[`<span class="tag ok" title="${esc(entry.checkNote||'')}">${entry.check}</span>`]:[])
   ];
   el.innerHTML=`<div class="t">${fmtTime(entry.time)}</div><div class="x">${renderText(entry)}<div class="tags">${tags.join('')}</div></div>`;
 }
@@ -868,10 +894,10 @@ function drawLine(entry){
 async function prepare(entry,merged,info={}){
   const snapped=snapNames(merged.text);
   Object.assign(entry,{text:snapped.text,fixes:snapped.fixes,unc:merged.unc,primed:info.primed,plain:info.plain,results:[],hits:[],kinds:[],locs:[]});
-  entry.check=info.typed?'TEST':info.single?'1 HEARING':merged.agree?'✓ HEARINGS AGREE':'✓ DOUBLE-CHECKED';
-  entry.checkNote=info.typed?'Typed test phrase':info.single?'Heard once (calls were piling up)':merged.agree?'Both hearings matched':'The two hearings differed; the more consistent one was kept';
+  entry.check=info.cloud?'✓ '+info.cloud:info.typed?'TEST':info.single?'1 HEARING':merged.agree?'✓ HEARINGS AGREE':'✓ DOUBLE-CHECKED';
+  entry.checkNote=info.cloud?'Transcribed by '+info.cloud+(merged.unc&&merged.unc.size?'. Dotted words were low-confidence.':''):info.typed?'Typed test phrase':info.single?'Heard once (calls were piling up)':merged.agree?'Both hearings matched':'The two hearings differed; the more consistent one was kept';
   entry.locs=extract(snapped.text).locs;
-  const reviewed=await claudeReview(entry);
+  const reviewed=info.partial?null:await claudeReview(entry);
   if(reviewed&&reviewed!==entry.text){const s2=snapNames(reviewed);entry.fixes=entry.fixes.concat(s2.fixes);entry.text=s2.text;entry.unc=new Set()}
   if(reviewed){entry.check='✓ CLAUDE CHECKED';entry.checkNote='Reviewed by Claude using both hearings'}
   const {locs,town}=extract(entry.text);
@@ -880,29 +906,36 @@ async function prepare(entry,merged,info={}){
   Object.assign(entry,{locs,kinds:kindsOf(entry.text),hits:watchMatches(entry.text)});
   for(const loc of locs.slice(0,2)){const g=await geocode(loc,ctxTown);if(g){entry.geo={loc,g};break}}
 }
-// Put the call on screen: transcript, pin, popup, alerts.
+// Put the call on screen, or update it if more of the call has arrived.
 function reveal(entry){
-  if(entry.revealed)return;entry.revealed=true;
-  if(entry.streamT!=null&&soundSynced())entry.time=new Date();
-  $('emptyMsg')&&$('emptyMsg').remove();
-  entry.el=document.createElement('div');lines.push(entry);
-  if(entry.geo){const{loc,g}=entry.geo,inc=addIncident(entry,loc,g);entry.results.push({...g,label:g.label||loc.label,inc});entry.inc=inc;
-    if(inc.inZone)entry.zone=true;}
+  const first=!entry.revealed;entry.revealed=true;
+  if(first){
+    $('emptyMsg')&&$('emptyMsg').remove();
+    entry.el=document.createElement('div');lines.push(entry);
+    entry.el.addEventListener('click',()=>{if(!entry.inc)return;map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();if(innerWidth<=760)setSheet(false)});
+    const box=$('transcript'),atTop=box.scrollTop<40;box.prepend(entry.el);if(atTop)box.scrollTop=0;
+    while(box.children.length>400)box.lastChild.remove();
+    $('tCount').textContent='· '+lines.length;
+  }
+  entry.results=[];
+  let newPin=false;
+  if(entry.geo){const{loc,g}=entry.geo,label=g.label||loc.label;
+    if(!entry.inc){entry.inc=addIncident(entry,loc,g);newPin=true}
+    else{Object.assign(entry.inc,{lat:g.lat,lon:g.lon,precise:g.precise,label,inZone:!!(me&&dist(me,[g.lat,g.lon])<=radiusM())});entry.inc.marker.setLatLng([g.lat,g.lon]).setStyle(markerStyle(entry.inc))}
+    entry.results.push({...g,label,inc:entry.inc});entry.zone=entry.inc.inZone}
   entry.alert=!!(entry.zone||entry.hits.length);
   drawLine(entry);
-  entry.el.addEventListener('click',()=>{if(!entry.inc)return;map.setView([entry.inc.lat,entry.inc.lon],Math.max(map.getZoom(),15));entry.inc.marker.openPopup();if(innerWidth<=760)setSheet(false)});
-  const box=$('transcript'),atTop=box.scrollTop<40;box.prepend(entry.el);if(atTop)box.scrollTop=0;
-  while(box.children.length>400)box.lastChild.remove();
-  $('tCount').textContent='· '+lines.length;
-  if(entry.inc){
+  if(entry.inc&&entry.inc.marker.isPopupOpen&&entry.inc.marker.isPopupOpen())entry.inc.marker.setPopupContent(callPopup(entry,{label:entry.inc.label,precise:entry.inc.precise}));
+  if(newPin){
     // only pop a bubble for calls already in view, so the map never jumps away from what you're looking at
     const inView=map.getBounds().pad(-0.15).contains([entry.inc.lat,entry.inc.lon]);
     const busy=document.body.classList.contains('picking')||(innerWidth<=760&&document.body.classList.contains('sheet-open'))||(map._popup&&map._popup.isOpen()&&!map._popup._source);
     if(!me&&!inView&&!busy){map.panTo([entry.inc.lat,entry.inc.lon]);setTimeout(()=>entry.inc.marker.openPopup(),400)}
     else if(inView&&!busy)entry.inc.marker.openPopup();
   }
-  if(entry.zone){const g=entry.geo.g;raiseAlert('POLICE ACTIVITY NEAR YOU',`${entry.inc.label} (${(dist(me,[g.lat,g.lon])/MILE).toFixed(2)} mi away)${entry.kinds.length?' · '+entry.kinds.join(', '):''}: “${entry.text}”`,[g.lat,g.lon])}
-  else if(entry.hits.length)raiseAlert('WATCHED STREET MENTIONED',`${entry.hits.map(h=>h.name).join(', ')}: “${entry.text}”`,entry.inc?[entry.inc.lat,entry.inc.lon]:null);
+  if(entry.alerted)return;
+  if(entry.zone){entry.alerted=true;const g=entry.geo.g;raiseAlert('POLICE ACTIVITY NEAR YOU',`${entry.inc.label} (${(dist(me,[g.lat,g.lon])/MILE).toFixed(2)} mi away)${entry.kinds.length?' · '+entry.kinds.join(', '):''}: “${entry.text}”`,[g.lat,g.lon])}
+  else if(entry.hits.length){entry.alerted=true;raiseAlert('WATCHED STREET MENTIONED',`${entry.hits.map(h=>h.name).join(', ')}: “${entry.text}”`,entry.inc?[entry.inc.lat,entry.inc.lon]:null)}
 }
 async function handleTyped(text){const e={time:new Date(),streamT:null};await prepare(e,{text,unc:new Set(),agree:true},{typed:true});reveal(e)}
 $('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim();if(v){handleTyped(v);$('testInput').value='';$('settingsDlg').close()}};
@@ -915,9 +948,7 @@ document.querySelector('#feed .grab').onclick=()=>setSheet(!$('feed').classList.
 $('feedToggle').onclick=()=>{const c=$('feed').classList.toggle('collapsed');$('feedToggle').textContent=c?'▾':'▴'};
 
 /* ================================================================
-   KEEP TRANSCRIPTS IN STEP WITH THE AUDIO YOU HEAR
-   Every chunk of the stream gets a position on one timeline. Calls are
-   held until the player reaches that position.
+   STREAM TIMELINE (each chunk's position, used to time-stamp calls)
    ================================================================ */
 const ST={start:new Map(),dur:new Map(),edge:0,frag:null,offs:[]};
 function noteSegments(ms,durs){
@@ -929,34 +960,88 @@ function noteSegments(ms,durs){
   ST.edge=Math.max(ST.edge,t);
   if(ST.start.size>400){const ks=[...ST.start.keys()].sort((a,b)=>a-b).slice(0,ST.start.size-300);for(const k of ks){ST.start.delete(k);ST.dur.delete(k)}}
 }
-const soundSynced=()=>listening&&$('optSound').checked&&!audio.paused&&!captured;
-function playPos(){
-  if(!soundSynced())return null;
-  if(hls){ // find the chunk the player is in right now
-    const lv=hls.levels&&hls.levels[Math.max(0,hls.currentLevel)],det=lv&&lv.details,ct=audio.currentTime;
-    let best=null;if(det)for(const f of det.fragments)if(f.start<=ct+0.05&&ct-f.start<f.duration+2&&ST.start.has(f.sn)&&(!best||f.start>best.start))best=f;
-    return best?ST.start.get(best.sn)+(ct-best.start):null;
-  }
-  if(!hls&&audio.seekable&&audio.seekable.length){
-    // native HLS: player time + offset; the smallest recent offset is the true one
-    const o=ST.edge-audio.seekable.end(audio.seekable.length-1),now=Date.now();
-    ST.offs.push([now,o]);ST.offs=ST.offs.filter(x=>now-x[0]<45000);
-    return audio.currentTime+Math.min(...ST.offs.map(x=>x[1]));
-  }
-  return null;
-}
-const held=[];
-function schedule(entry){if(entry.streamT==null||!soundSynced()){reveal(entry);return}entry.heldAt=Date.now();held.push(entry);paintUpcoming()}
-function paintUpcoming(){$('upcoming').textContent=held.length?`· ${held.length} CALL${held.length>1?'S':''} COMING UP`:''}
-setInterval(()=>{
-  if(!held.length)return;const pos=playPos(),now=Date.now();
-  const synced=soundSynced();
-  for(let i=0;i<held.length;i++){const e=held[i];if(!synced||(pos!=null&&pos>=e.streamT-0.2)||now-e.heldAt>40000){held.splice(i--,1);reveal(e)}}
-  paintUpcoming();
-},250);
+const soundSynced=()=>false;
+function schedule(entry){reveal(entry)} // show every call the moment it's ready
 
 /* ================================================================
-   SPEECH RECOGNITION (Whisper on this device, in a background worker)
+   CLOUD TRANSCRIPTION (fast and accurate; each call is sent the moment it's heard)
+   ================================================================ */
+const API_BASE=QS.get('apibase'); // testing only
+const PROVIDERS={
+  groq:{name:'GROQ · WHISPER LARGE V3',keyUrl:'https://console.groq.com/keys',ph:'gsk_…',
+    check:k=>fetch((API_BASE||'https://api.groq.com')+'/openai/v1/models',{headers:{Authorization:'Bearer '+k}}),
+    async run(wav,prompt,key){
+      const fd=new FormData();fd.append('file',wav,'call.wav');fd.append('model','whisper-large-v3');fd.append('language','en');fd.append('temperature','0');fd.append('response_format','verbose_json');if(prompt)fd.append('prompt',prompt);
+      const r=await fetch((API_BASE||'https://api.groq.com')+'/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+key},body:fd,signal:timeoutSignal(25000)});
+      if(!r.ok)throw await apiErr(r);const j=await r.json();
+      if(!j.segments)return{text:j.text||'',unclear:[]};
+      const segs=j.segments.filter(x=>!(x.no_speech_prob>0.6&&x.avg_logprob<-0.7)); // drop hiss that was "heard" as words
+      return{text:segs.map(x=>x.text).join(' ').trim(),unclear:segs.filter(x=>x.avg_logprob<-0.85).map(x=>x.text)};
+    }},
+  deepgram:{name:'DEEPGRAM · NOVA-3',keyUrl:'https://console.deepgram.com/',ph:'Deepgram API key',
+    check:k=>fetch((API_BASE||'https://api.deepgram.com')+'/v1/projects',{headers:{Authorization:'Token '+k}}),
+    async run(wav,prompt,key,terms){
+      const q=new URLSearchParams({model:'nova-3',language:'en-US',smart_format:'true',punctuate:'true',numerals:'true'});for(const t of terms.slice(0,40))q.append('keyterm',t);
+      const r=await fetch((API_BASE||'https://api.deepgram.com')+'/v1/listen?'+q,{method:'POST',headers:{Authorization:'Token '+key,'Content-Type':'audio/wav'},body:wav,signal:timeoutSignal(25000)});
+      if(!r.ok)throw await apiErr(r);const j=await r.json();const alt=j.results.channels[0].alternatives[0]||{};
+      return{text:alt.transcript||'',unclear:(alt.words||[]).filter(w=>w.confidence<0.55).map(w=>w.punctuated_word||w.word)};
+    }},
+  openai:{name:'OPENAI · GPT-4O TRANSCRIBE',keyUrl:'https://platform.openai.com/api-keys',ph:'sk-…',
+    check:k=>fetch((API_BASE||'https://api.openai.com')+'/v1/models',{headers:{Authorization:'Bearer '+k}}),
+    async run(wav,prompt,key){
+      const fd=new FormData();fd.append('file',wav,'call.wav');fd.append('model','gpt-4o-transcribe');fd.append('language','en');fd.append('response_format','json');if(prompt)fd.append('prompt',prompt);
+      const r=await fetch((API_BASE||'https://api.openai.com')+'/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+key},body:fd,signal:timeoutSignal(25000)});
+      if(!r.ok)throw await apiErr(r);const j=await r.json();return{text:j.text||'',unclear:[]};
+    }},
+};
+async function apiErr(r){let m='';try{const j=await r.json();m=(j.error&&(j.error.message||j.error))||j.err_msg||j.message||''}catch{}const e=new Error(m||('HTTP '+r.status));e.status=r.status;e.retry=+r.headers.get('retry-after')||0;return e}
+const engine=()=>store.get('engine','groq');
+const sttKey=(k=engine())=>store.get('sttKey_'+k,'');
+const cloudReady=()=>engine()!=='device'&&!!sttKey();
+function encodeWav(f32,sr=16000){
+  const b=new ArrayBuffer(44+f32.length*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+f32.length*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,f32.length*2,true);
+  for(let i=0;i<f32.length;i++){const x=Math.max(-1,Math.min(1,f32[i]));v.setInt16(44+i*2,x<0?x*0x8000:x*0x7fff,true)}
+  return new Blob([b],{type:'audio/wav'});
+}
+function keyTerms(){ // words for Deepgram to listen for
+  const near=watchStreets.slice(0,12).map(w=>displayBase(w.base)||w.name);
+  return[...new Set([...near,'Higuera','Foothill','Santa Rosa','Madonna','Los Osos Valley','Tank Farm','Broad','El Camino Real','Grand','Niblick','Morro Bay','Paso Robles','Atascadero','Templeton','Arroyo Grande','Grover Beach','Pismo Beach','Los Osos','Nipomo','Oceano','Cambria','Avila Beach','Cal Poly','San Luis Obispo'])];
+}
+let cloudPause=0,cloudBlocked=false,inflight=0;
+const entriesByTx=new Map();
+async function handleCloud(item){
+  const prov=PROVIDERS[engine()],key=sttKey(),wav=encodeWav(item.audio);
+  aiStatus('TRANSCRIBING');
+  let res;
+  try{
+    res=await prov.run(wav,currentPrompt,key,keyTerms());
+    let text=cleanText(res.text);
+    if(text&&promptEcho(text)){res=await prov.run(wav,null,key,[]);text=cleanText(res.text)}
+    res.text=text;
+  }catch(e){
+    if(e.status===401||e.status===403){cloudBlocked=true;aiStatus('KEY REJECTED');showErr(`${prov.name.split(' ·')[0]} didn't accept your key (${e.message}). Check it in Settings.`,['OPEN SETTINGS',openSettings]);return}
+    if(e.status===429){cloudPause=Date.now()+1000*(e.retry||10);aiStatus('SERVICE LIMIT · WAITING');if(!item.partial)queue.unshift(item);return}
+    if(!item.retried){item.retried=true;queue.unshift(item);await sleep(1500);return}
+    console.warn(e);return;
+  }
+  if(!res.text)return;
+  const unc=new Set(res.unclear.flatMap(t=>wordsOf(t)).filter(w=>!COMMON_EN.has(w)&&w.length>2&&!/^\d/.test(w)));
+  await showCall(item,{text:res.text,unc,agree:!unc.size},{cloud:prov.name,partial:item.partial});
+}
+// one transcript line per radio call; partial results update it in place
+async function showCall(item,merged,info){
+  let entry=item.tx!=null?entriesByTx.get(item.tx):null;
+  if(entry&&entry.final&&item.partial)return; // the full call already arrived
+  if(!entry){entry={time:item.wall?new Date(item.wall):new Date(),streamT:item.t,tx:item.tx};if(item.tx!=null)entriesByTx.set(item.tx,entry);if(entriesByTx.size>300)entriesByTx.delete(entriesByTx.keys().next().value)}
+  entry.partial=!!item.partial;if(!item.partial)entry.final=true;
+  await prepare(entry,merged,info);
+  if(entry.final&&item.partial)return;
+  reveal(entry);
+}
+
+/* ================================================================
+   ON-DEVICE SPEECH RECOGNITION (fallback without a key)
    ================================================================ */
 const WORKER_SRC=`
 import { AutoProcessor, AutoTokenizer, WhisperForConditionalGeneration, env } from '${TRANSFORMERS}';
@@ -1037,7 +1122,17 @@ function rebuildPrompt(){
 }
 rebuildPrompt();
 const queue=[];let pumping=false;
-async function pump(){
+function pump(){
+  if(engine()!=='device'){
+    if(!cloudReady()||cloudBlocked)return;
+    if(Date.now()<cloudPause){setTimeout(pump,cloudPause-Date.now()+50);return}
+    if(queue.length>8)queue.splice(0,queue.length-8);
+    while(inflight<3&&queue.length){const item=queue.shift();inflight++;handleCloud(item).finally(()=>{inflight--;if(!inflight&&!queue.length)aiStatus('LISTENING · '+PROVIDERS[engine()].name.split(' ·')[0]);pump()})}
+    return;
+  }
+  pumpDevice();
+}
+async function pumpDevice(){
   if(pumping||!modelReady)return;pumping=true;
   while(queue.length){
     if(queue.length>6)queue.splice(0,queue.length-6);
@@ -1050,9 +1145,7 @@ async function pump(){
       if(two){aiStatus('HEARING (2 OF 2)');plain=cleanText(await asr(seg.audio.slice(),null))}
       const merged=two?reconcile(primed,plain):reconcile(primed,null);
       if(!merged)continue;
-      const entry={time:seg.wall?new Date(seg.wall):new Date(),streamT:seg.t};
-      await prepare(entry,merged,{primed,plain,single:!two});
-      schedule(entry);
+      await showCall(seg,merged,{primed,plain,single:!two,partial:seg.partial});
     }catch(e){console.warn(e)}
   }
   pumping=false;aiStatus(modelReady?`LISTENING · ${modelKey.toUpperCase()} · ${modelDevice}`:'IDLE');
@@ -1095,8 +1188,10 @@ async function processSegment(ts,seq){
   if(!SEG.calibrated){const r=[];for(let i=0;i+512<=pcm.length;i+=512){let q=0;for(let k=i;k<i+512;k++)q+=pcm[k]*pcm[k];r.push(Math.sqrt(q/512))}r.sort((a,b)=>a-b);if(r.length)floor=Math.max(1e-4,r[Math.floor(r.length*0.3)]);SEG.calibrated=true}
   const t0=ST.start.get(seq)??0,wall=Date.now()-(ST.edge-t0)*1000;
   for(let i=0;i<pcm.length;i+=512)vad(pcm.subarray(i,i+512),16000,t0+i/16000,wall+i/16);
+  flushPartial(16000);
 }
 // Voice activity detection: radio calls are bursts of speech with hiss between them.
+let txCounter=0,curTx=0,lastPartialLen=0;
 let floor=0.003,inSpeech=false,segBufs=[],segLen=0,silentFor=0,voicedFor=0,preroll=[],segStartT=0,segStartWall=0,segPeak=0,segFloor=0;
 const sensFactor=()=>4.2-(+$('sens').value)*0.32;
 $('sens').oninput=()=>{$('sensLbl').textContent=$('sens').value+'/10';store.set('sens',$('sens').value)};
@@ -1105,18 +1200,25 @@ function vad(chunk,sr,t,wall){
   floor=rms<floor?floor*0.9+rms*0.1:floor*0.999+rms*0.001;floor=Math.max(floor,1e-4);
   const loud=rms>Math.max(0.004,floor*sensFactor());
   if(!inSpeech){preroll.push(chunk.slice());if(preroll.length>Math.ceil(0.35/dt))preroll.shift();
-    if(loud){inSpeech=true;segBufs=[...preroll];segLen=segBufs.reduce((s,b)=>s+b.length,0);preroll=[];silentFor=0;voicedFor=dt;segStartT=t==null?null:t-0.35;segStartWall=wall||Date.now();segPeak=rms;segFloor=floor}return}
+    if(loud){inSpeech=true;segBufs=[...preroll];segLen=segBufs.reduce((s,b)=>s+b.length,0);preroll=[];silentFor=0;voicedFor=dt;segStartT=t==null?null:t-0.35;segStartWall=wall||Date.now();segPeak=rms;segFloor=floor;curTx=++txCounter;lastPartialLen=0}return}
   segBufs.push(chunk.slice());segLen+=chunk.length;if(loud){silentFor=0;voicedFor+=dt}else silentFor+=dt;if(rms>segPeak)segPeak=rms;
   if(silentFor>0.9||segLen/sr>28){const bufs=segBufs;inSpeech=false;segBufs=[];segLen=0;
     // real calls rise well above the background hiss; small bumps don't
-    if(voicedFor>=0.6&&segPeak>segFloor*3)enqueue(bufs,sr,segStartT,segStartWall);voicedFor=0}
+    if(voicedFor>=0.6&&segPeak>segFloor*3)enqueue(bufs,sr,segStartT,segStartWall,{tx:curTx});voicedFor=0}
 }
-function enqueue(bufs,sr,t,wall){
+// A call still going at the end of a chunk: send what we have now instead of waiting ~8 s for the next chunk.
+function flushPartial(sr){
+  if(!inSpeech||voicedFor<1.2||segPeak<=segFloor*3)return;
+  if(segLen-lastPartialLen<sr*1.5)return;lastPartialLen=segLen;
+  if(engine()==='device')return; // on-device is too slow to transcribe twice
+  enqueue(segBufs.slice(),sr,segStartT,segStartWall,{tx:curTx,partial:true});
+}
+function enqueue(bufs,sr,t,wall,meta={}){
   const n=bufs.reduce((s,b)=>s+b.length,0),all=new Float32Array(n);let o=0;for(const b of bufs){all.set(b,o);o+=b.length}
   let out=all;
   if(sr!==16000){const ratio=sr/16000,m=Math.floor(n/ratio);out=new Float32Array(m);for(let i=0;i<m;i++){const x=i*ratio,i0=Math.floor(x),f=x-i0;out[i]=all[i0]*(1-f)+(all[i0+1]||0)*f}}
   let peak=0;for(let i=0;i<out.length;i++)peak=Math.max(peak,Math.abs(out[i]));if(peak>0){const g=Math.min(0.9/peak,20);for(let i=0;i<out.length;i++)out[i]*=g}
-  queue.push({audio:out,t,wall});pump();
+  queue.push({audio:out,t,wall,...meta});pump();
 }
 let captured=false;
 async function startCaptureFallback(){
@@ -1141,7 +1243,7 @@ function startSound(){
   if(hls){hls.destroy();hls=null}ST.frag=null;ST.offs=[];
   if(audio.canPlayType('application/vnd.apple.mpegurl')){audio.src=STREAM;return audio.play()}
   const go=()=>{
-    hls=new window.Hls({liveSyncDuration:9,liveMaxLatencyDuration:22,maxLiveSyncPlaybackRate:1.2,backBufferLength:30});
+    hls=new window.Hls({liveSyncDuration:8.5,liveMaxLatencyDuration:16,maxLiveSyncPlaybackRate:1.25,backBufferLength:20});
     hls.loadSource(STREAM);hls.attachMedia(audio);let tries=0;
     hls.on(window.Hls.Events.FRAG_CHANGED,(_e,d)=>{ST.frag={sn:d.frag.sn,start:d.frag.start}});
     hls.on(window.Hls.Events.ERROR,(_e,d)=>{if(!d.fatal)return;if(tries++<4){d.type===window.Hls.ErrorTypes.MEDIA_ERROR?hls.recoverMediaError():setTimeout(()=>hls&&hls.startLoad(),1500);return}state('NO SOUND · USE FALLBACK')});
@@ -1149,9 +1251,9 @@ function startSound(){
   return window.Hls?go():loadScript(HLS_SRC).then(go);
 }
 // Native players (Safari) start well behind live; jump closer.
-function catchUp(){if(hls||!listening||audio.paused||!audio.seekable.length)return;const end=audio.seekable.end(audio.seekable.length-1);if(end-audio.currentTime>17)audio.currentTime=end-9}
+function catchUp(){if(hls||!listening||audio.paused||!audio.seekable.length)return;const end=audio.seekable.end(audio.seekable.length-1);if(end-audio.currentTime>12.5)audio.currentTime=end-8.5}
 audio.addEventListener('playing',()=>{catchUp();listening&&state($('optSound').checked?'LIVE':'LIVE · MUTED',true)});
-setInterval(catchUp,20000);
+setInterval(catchUp,8000);
 function stopSound(){audio.pause();if(hls){hls.destroy();hls=null}audio.removeAttribute('src');ST.frag=null}
 async function keepAwake(on){try{if(on&&navigator.wakeLock&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch{}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&listening)keepAwake(true)});
@@ -1160,21 +1262,48 @@ async function play(){
   const c=getCtx();c&&c.resume&&c.resume();
   let sound=null;
   if($('optSound').checked)sound=startSound().catch(e=>{console.warn(e);state('NO SOUND · USE FALLBACK')});
-  await gpuCheck;if(!worker){paintModels();startWorker()}
+  if(engine()==='device'){await gpuCheck;if(!worker){paintModels();startWorker()}}
+  else if(!sttKey())openSetup();
+  else aiStatus('READY · '+PROVIDERS[engine()].name.split(' ·')[0]);
   SEG.running=true;SEG.seq=-1;SEG.carry=null;SEG.fails=0;SEG.calibrated=false;segmentLoop();
   listening=true;btn.textContent='STOP';btn.disabled=false;keepAwake(true);
   await sound;if(listening&&!/FALLBACK/.test($('status').textContent))state($('optSound').checked?'LIVE':'LIVE · MUTED',true);
 }
-function stop(){listening=false;SEG.running=false;stopSound();keepAwake(false);state('STOPPED');$('start').textContent='START LISTENING';$('lvl').style.width='0';while(held.length)reveal(held.shift());paintUpcoming()}
+function stop(){listening=false;SEG.running=false;stopSound();keepAwake(false);state('STOPPED');$('start').textContent='START LISTENING';$('lvl').style.width='0';}
 $('start').onclick=()=>listening?stop():play();
-$('optSound').onchange=()=>{store.set('sound',$('optSound').checked);if(!listening)return;if($('optSound').checked){startSound().then(()=>state('LIVE',true)).catch(()=>{})}else if(!captured){stopSound();state('LIVE · MUTED',true);while(held.length)reveal(held.shift());paintUpcoming()}};
+$('optSound').onchange=()=>{store.set('sound',$('optSound').checked);if(!listening)return;if($('optSound').checked){startSound().then(()=>state('LIVE',true)).catch(()=>{})}else if(!captured){stopSound();state('LIVE · MUTED',true)}};
 $('optDouble').onchange=()=>store.set('double',$('optDouble').checked);
 audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
 
 /* ================================================================
    SETTINGS & DIALOGS
    ================================================================ */
-function openSettings(){paintModels();$('settingsDlg').showModal()}
+function paintEngine(){
+  const e=engine(),dev=e==='device';$('engine').value=e;
+  $('keyBox').style.display=dev?'none':'';$('deviceBox').style.display=dev?'':'none';
+  if(!dev){const P=PROVIDERS[e];$('sttKey').placeholder=P.ph;$('sttKey').value=sttKey(e)?'••••••••••••':'';
+    $('engineNote').innerHTML=sttKey(e)?'Key saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
+  else paintModels();
+}
+function openSettings(){paintEngine();$('settingsDlg').showModal()}
+function openSetup(){if(!$('setupDlg').open)$('setupDlg').showModal();setTimeout(()=>$('setupKey').focus(),100)}
+async function saveKey(prov,key,note){
+  key=key.trim();if(!key)return false;
+  note.textContent='Checking your key…';
+  try{const r=await PROVIDERS[prov].check(key);if(r.status===401||r.status===403){note.textContent='That key was rejected. Copy it again and paste the whole thing.';return false}}
+  catch{note.textContent='Couldn\'t reach the service to check the key; saved anyway.'}
+  store.set('sttKey_'+prov,key);store.set('engine',prov);cloudBlocked=false;
+  if(worker){worker.terminate();worker=null;modelReady=false}
+  aiStatus((listening?'LISTENING · ':'READY · ')+PROVIDERS[prov].name.split(' ·')[0]);pump();return true;
+}
+$('engine').onchange=()=>{const v=$('engine').value;store.set('engine',v);cloudBlocked=false;
+  if(v==='device'){if(listening){gpuCheck.then(()=>{paintModels();if(!worker)startWorker()})}}
+  else{if(worker){worker.terminate();worker=null;modelReady=false}if(sttKey(v))aiStatus('READY · '+PROVIDERS[v].name.split(' ·')[0]);else aiStatus('NEEDS KEY')}
+  paintEngine();pump()};
+$('sttKeySave').onclick=async()=>{const v=$('sttKey').value;if(!v||v.startsWith('••'))return;if(await saveKey(engine(),v,$('engineNote'))){$('sttKey').value='••••••••••••';$('engineNote').textContent='Key works. Transcribing.'}};
+$('setupSave').onclick=async()=>{if(await saveKey('groq',$('setupKey').value,$('setupNote'))){$('setupNote').textContent='Connected. New calls will be transcribed as they come in.';setTimeout(()=>$('setupDlg').close(),900)}};
+$('setupKey').addEventListener('keydown',e=>{if(e.key==='Enter')$('setupSave').click()});
+$('setupDevice').onclick=()=>{store.set('engine','device');$('setupDlg').close();gpuCheck.then(()=>{paintModels();if(listening&&!worker)startWorker()})};
 $('settingsBtn').onclick=openSettings;
 document.querySelectorAll('dialog [data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
@@ -1195,6 +1324,7 @@ buildStreetIndex(BUILTIN.split('|'));
 store.get('watchCustom',[]).forEach(n=>addKeyword(n));renderChips();
 const saved=store.get('myLoc',null);if(saved)setLocation(saved.lat,saved.lon,'Saved',0);
 gpuCheck.then(paintModels);
+aiStatus(engine()==='device'?'ON-DEVICE':sttKey()?'READY · '+PROVIDERS[engine()].name.split(' ·')[0]:'NEEDS KEY');
 setTimeout(()=>{loadStreetData();if(!audio.canPlayType('application/vnd.apple.mpegurl'))loadScript(HLS_SRC).catch(()=>{})},150);
 </script>
 </body>
