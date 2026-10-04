@@ -59,7 +59,12 @@
     .empty{padding:18px 16px;color:var(--muted);font-size:13px;line-height:1.6}.empty b{color:var(--text)}
     .line{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:10px 14px;border-bottom:1px solid #12293a;font-size:14px;line-height:1.5;animation:fade .35s;cursor:default}
     .line.alert{background:#3a0f17aa;box-shadow:inset 3px 0 var(--red)}
-    .line.located{box-shadow:inset 3px 0 var(--tc,var(--orange));cursor:pointer}
+    .line{position:relative}
+    .line.located{cursor:pointer}
+    .line::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tbar,transparent)}
+    .pin{border-radius:50%;border:2px solid #061019;box-shadow:0 0 0 1.5px #ffffffd0,0 3px 10px #000b;cursor:pointer;box-sizing:border-box}
+    .pin.approx{opacity:.82;box-shadow:0 0 0 1.5px #ffffff70,0 3px 10px #000b}
+    .pin.zone{box-shadow:0 0 0 3px var(--cyan),0 0 16px #61dcffcc}
     .line.located:hover{background:#0d2232}
     .line .t{color:var(--dim);font:700 11px ui-monospace,Menlo,monospace;padding-top:3px}
     .line .x{color:#d9ebf2;overflow-wrap:anywhere}
@@ -69,7 +74,7 @@
     .unc{text-decoration:underline dotted #e3b34f;text-underline-offset:3px;cursor:help}
     .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
     .tag{font-size:10px;font-weight:800;letter-spacing:.05em;padding:4px 8px;border-radius:5px;background:#102c3e;border:1px solid #2c5a72;color:#cfeaf5;line-height:1.3}
-    .tag.loc{border-color:#8a4a2c;background:#2e170c;color:#ffb48f}
+    .tag.loc{border-color:#4d6676;background:#14222c;color:#e3eef4}
     .tag.al{background:#4a1018;border-color:var(--red);color:#ffc2c8}
     .tag.ok{background:#0f2f28;border-color:#2f7f62;color:#9ff0cf}
     .tag.pend{color:var(--muted)}
@@ -382,18 +387,35 @@ const KINDS=[ // words that name the type of call (codes are read separately, wi
  [/\b(trespass\w*|refusing to leave)\b/i,'TRESPASS'],[/\b(vandal\w*|graffiti|tagging)\b/i,'VANDALISM'],
  [/\b(alarm|panic button)\b/i,'ALARM'],[/\b(dogs?|cat|horse|cattle|cows?|animal|coyote|mountain lion|deer)\b/i,'ANIMAL'],
 ];
-// Colors by kind of emergency (pins, street lines, tags)
-const TYPE_GROUPS=[
- {key:'medical',label:'Medical',color:'#5b8cff',kinds:['MEDICAL','MENTAL HEALTH','DEATH']},
- {key:'fire',label:'Fire',color:'#ff5b3a',kinds:['FIRE']},
- {key:'traffic',label:'Traffic',color:'#f5b83d',kinds:['COLLISION','TRAFFIC HAZARD','TRAFFIC STOP','DUI / RECKLESS','PURSUIT']},
- {key:'violent',label:'Violence / weapons',color:'#ff4fa3',kinds:['WEAPON','ASSAULT','ROBBERY','HOMICIDE','KIDNAPPING','SEX CRIME','DOMESTIC','THREATS','OFFICER NEEDS HELP','CHILD WELFARE']},
- {key:'property',label:'Property crime',color:'#a98bff',kinds:['BURGLARY','BURGLARY ALARM','THEFT','VANDALISM','TRESPASS','FRAUD','ALARM','DRUGS']},
- {key:'other',label:'Disturbance / other',color:'#4fd1c5',kinds:['DISTURBANCE / NOISE','DISTURBANCE','SUSPICIOUS','WELFARE CHECK','ANIMAL','MORSE CODE']},
-];
-const UNKNOWN_COLOR='#9fb6c4';
-const typeGroup=kind=>TYPE_GROUPS.find(g=>g.kinds.includes(kind))||null;
-const typeColor=kind=>(typeGroup(kind)||{color:UNKNOWN_COLOR}).color;
+// Colors by who handles the call: blue medical, red fire, orange police (split colors when more than one); green when resolved
+const SERVICES={medical:{label:'Medical',color:'#4a90ff'},fire:{label:'Fire',color:'#ff3b3b'},police:{label:'Police',color:'#ff8c1a'}};
+const SVC_ORDER=['medical','fire','police'],RESOLVED_COLOR='#53ebb0',UNKNOWN_COLOR='#9fb6c4';
+const serviceOf=kind=>!kind||kind==='MORSE CODE'?null:kind==='MEDICAL'||kind==='DEATH'?'medical':kind==='FIRE'?'fire':'police';
+const typeColor=kind=>{const v=serviceOf(kind);return v?SERVICES[v].color:UNKNOWN_COLOR};
+function servicesOf(entry){
+  const out=[];for(const k of entry.kinds||[]){const v=serviceOf(k);if(v&&!out.includes(v))out.push(v)}
+  if(!out.length&&!entry.morse){ // no type named: go by who is on the radio
+    const t=entry.text||'';
+    if(/\b(medic|ambulance|BLS|ALS)\b/i.test(t))out.push('medical');
+    if(/\b(engine|battalion|cal ?fire)\s*\d/i.test(t))out.push('fire');
+    if(/\b(deputy|deputies|officer|sheriff|CHP)\b/i.test(t)||[...(entry.units||callsigns(t))].some(u=>!/^(medic|engine|battalion|truck|rescue|squad)/.test(u)))out.push('police');
+  }
+  return out.sort((a,b)=>SVC_ORDER.indexOf(a)-SVC_ORDER.indexOf(b));
+}
+const svcColors=svcs=>svcs&&svcs.length?svcs.map(v=>SERVICES[v].color):[UNKNOWN_COLOR];
+// a pie of colors for a pin, a split bar for a transcript line
+const pieBg=cols=>cols.length===1?cols[0]:`conic-gradient(${cols.map((c,i)=>`${c} ${(i*100/cols.length).toFixed(1)}% ${((i+1)*100/cols.length).toFixed(1)}%`).join(',')})`;
+const barBg=cols=>cols.length===1?cols[0]:`linear-gradient(${cols.map((c,i)=>`${c} ${(i*100/cols.length).toFixed(1)}% ${((i+1)*100/cols.length).toFixed(1)}%`).join(',')})`;
+// A call with no type of its own ("10-18, 1424 Osage") takes the type of the conversation it belongs to
+function inheritKinds(entry){
+  if(entry.morse||(entry.kinds&&entry.kinds.length&&!entry.inherited))return;
+  const typed=e=>e!==entry&&!e.morse&&e.kinds&&e.kinds.length;
+  let src=null;
+  if(entry.inc)src=entry.inc.entries.find(e=>typed(e)&&!e.inherited)||entry.inc.entries.find(typed);
+  if(!src&&entry.units&&entry.units.size)src=[...lines].reverse().find(e=>typed(e)&&e.time<=entry.time&&entry.time-e.time<15*60e3&&e.units&&[...entry.units].some(u=>e.units.has(u)));
+  if(!src)src=[...lines].reverse().find(e=>typed(e)&&e.time<=entry.time&&entry.time-e.time<150e3);
+  if(src){entry.kinds=src.kinds.slice();entry.inherited=true;entry.inheritedAt=src.time}
+}
 // Fire/EMS dispatch is sent with alert tones first; a call right after tones is a medical call unless the words say otherwise
 function tonedKinds(kinds){
   const k=kinds.filter(x=>x!=='MEDICAL');
@@ -896,6 +918,7 @@ Rules:
 - "text": the transcript with only clear mishearings fixed (street/town names, unit IDs, codes). Keep every word and the punctuation, including the unit or town at the start; never remove, add or invent content.
 - Unit call signs are not addresses: a number with a phonetic word like "23 Adam", "Adam 6-2", "3 Lincoln 12", "Paul 7", "Mary 40", "Sam 2" names a patrol unit.
 - Radio and penal codes (10-4, 10-15, 10-97, 11-82, 11-83, 415, 459, 5150) are not house numbers. "Code 2", "Code 3", "Code 4" are often misheard (e.g. "go to you" at the start of a call is usually "Code 2").
+- House numbers come before the street ("1424 Osage"). A short number said after a street or at the end ("Osage 97", "show me 97") is usually a 10-code said without the "10" (97 = on scene, 98 = finished), not a house number.
 - Numbers after room, bed, suite, apartment, space or gate are inside a building: never a highway or house number ("room 101" is not US 101).
 - Hospitals are named by short names: "French" = French Hospital, "Sierra" or "Sierra Vista" = Sierra Vista Hospital, "Twin" or "Twin Cities" = Twin Cities Hospital, "Marian" = Marian Hospital (Santa Maria), "AG hospital" = Arroyo Grande Hospital. For a patient move ("going to French, room 101, bed 2"), the location is the destination hospital: put it in "place".
 - "street" and "cross" should be copied exactly from the candidate street list. Highways can be given as "US 101", "CA 1", "CA 46", etc.
@@ -946,7 +969,7 @@ async function aiCheck(entry){
   for(const model of AI_MODELS){
     if(Date.now()<(aiLimitedUntil[model]||0))continue;
     try{
-      const r=await fetch((API_BASE||'https://api.groq.com')+'/openai/v1/chat/completions',{method:'POST',signal:timeoutSignal(7000),headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
+      const r=await groqFetch('/openai/v1/chat/completions',{method:'POST',signal:timeoutSignal(7000),headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model,messages:[{role:'system',content:AI_SYS},{role:'user',content:user}],response_format:{type:'json_object'},temperature:0,max_completion_tokens:500,...(model.startsWith('openai/')?{reasoning_effort:'low'}:{})})});
       if(r.status===429){aiLimitedUntil[model]=Date.now()+1000*(+r.headers.get('retry-after')||30);continue}
       if(!r.ok)continue;countUse('ai');
@@ -1087,15 +1110,18 @@ const incidentLayer=L.layerGroup().addTo(map);
 let me=null,meAcc=0,meMarker=null,meCircle=null,accCircle=null;
 const incidents=[];let incSeq=0;
 const RESOLVED_SHOW=10*60e3,ACTIVE_SHOW=60*60e3; // resolved pins stay 10 min; others 1 hour after the last update
-const incKind=inc=>{for(let i=inc.entries.length-1;i>=0;i--)if(inc.entries[i].kinds&&inc.entries[i].kinds.length)return inc.entries[i].kinds[0];return inc.kind||null};
-const incColor=inc=>typeColor(incKind(inc));
-const pinColor=inc=>inc.status==='resolved'?'#53ebb0':inc.inZone?'#ff4e5e':incColor(inc);
-const markerStyle=inc=>({radius:inc.line?7:inc.precise?10:9,color:pinColor(inc),weight:inc.inZone&&inc.status!=='resolved'?3.5:2.5,fillColor:inc.status==='resolved'?'#53ebb0':incColor(inc),fillOpacity:inc.status==='resolved'?.5:inc.precise?.55:.28,dashArray:inc.precise||inc.status==='resolved'?null:'4 3',bubblingMouseEvents:false});
+function incServices(inc){const out=[];for(const e of inc.entries)for(const v of servicesOf(e))if(!out.includes(v))out.push(v);if(!out.length&&inc.svcs)out.push(...inc.svcs);return out.sort((a,b)=>SVC_ORDER.indexOf(a)-SVC_ORDER.indexOf(b))}
+const incCols=inc=>inc.status==='resolved'?[RESOLVED_COLOR]:svcColors(incServices(inc));
+function pinIcon(inc){
+  const res=inc.status==='resolved',sz=inc.line?16:inc.precise?20:18;
+  return L.divIcon({className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2],
+    html:`<div class="pin${inc.precise||res||inc.line?'':' approx'}${inc.inZone&&!res?' zone':''}" style="width:${sz}px;height:${sz}px;background:${pieBg(incCols(inc))}"></div>`});
+}
 // keep popups clear of the floating panels
 function popPad(){const w=innerWidth<=760;return{autoPanPaddingTopLeft:w?[10,190]:[430,110],autoPanPaddingBottomRight:w?[10,innerHeight*0.35]:[390,30]}}
 function callPopup(entry,r){
   const inc=entry&&entry.inc,n=inc?inc.entries.length:1,st=inc&&inc.status==='resolved'?'<span style="color:var(--green)"> · RESOLVED</span>':'';
-  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?` · <span style="color:${typeColor(entry.kinds[0])}">${esc(entry.kinds[0])}</span>`:''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
+  return `<div class="pop"><div class="pt">${fmtTime(entry.time)}${entry.kinds.length?' · '+entry.kinds.map(k=>`<span style="color:${typeColor(k)}">${esc(k)}</span>`).join(' + '):''}${st}${n>1?` · ${n} calls`:''}</div><div class="px">${renderText(entry)}</div>${r?`<div class="pl">📍 ${esc(r.label)} <small>${r.precise?'':'(approximate)'}</small></div>`:''}</div>`;
 }
 // A street named with no address or cross street: draw the street itself (the stretch near where the call was placed)
 function streetLine(s,lat,lon){
@@ -1108,12 +1134,16 @@ function streetLine(s,lat,lon){
 }
 // approximate pins (a street but no exact spot) get the whole nearby stretch of that street drawn
 const lineFor=(loc,g)=>!g.precise&&(g.s||(loc&&loc.s))?streetLine(g.s||loc.s,g.lat,g.lon):null;
-const lineStyle=inc=>({color:inc.status==='resolved'?'#53ebb0':incColor(inc),dashArray:null,weight:6,opacity:inc.status==='resolved'?.6:.9,lineCap:'round',lineJoin:'round',bubblingMouseEvents:false});
+function drawIncLine(inc){ // one stripe per color
+  const g=inc.lineLayer;if(!g)return;g.clearLayers();const cols=incCols(inc),n=cols.length,seg=14,op=inc.status==='resolved'?.6:.92;
+  cols.forEach((c,i)=>{const pl=L.polyline(inc.line,{color:c,weight:6,opacity:op,lineCap:n>1?'butt':'round',lineJoin:'round',dashArray:i?`${seg} ${seg*(n-1)}`:null,dashOffset:i?String(seg*(n-i)):null,bubblingMouseEvents:false});
+    pl.on('click',e=>{L.DomEvent.stop(e);inc.marker.openPopup();focusIncident(inc,true)});g.addLayer(pl)});
+}
 function incDist(inc){if(!me)return Infinity;let d=dist(me,[inc.lat,inc.lon]);if(inc.line)for(const seg of inc.line)for(const p of seg){const x=dist(me,p);if(x<d)d=x}return d}
-function styleInc(inc){inc.marker.setStyle(markerStyle(inc));if(inc.lineLayer)inc.lineLayer.setStyle(lineStyle(inc))}
+function styleInc(inc){inc.marker.setIcon(pinIcon(inc));inc.marker.setZIndexOffset(inc.inZone&&inc.status!=='resolved'?500:0);drawIncLine(inc)}
 function setIncLine(inc,line){
   if(inc.lineLayer){incidentLayer.removeLayer(inc.lineLayer);inc.lineLayer=null}inc.line=line||null;
-  if(inc.line){inc.lineLayer=L.polyline(inc.line,lineStyle(inc)).addTo(incidentLayer);inc.lineLayer.on('click',e=>{L.DomEvent.stop(e);inc.marker.openPopup();focusIncident(inc,true)});inc.marker.bringToFront&&inc.marker.bringToFront()}
+  if(inc.line){inc.lineLayer=L.layerGroup().addTo(incidentLayer);drawIncLine(inc)}
 }
 // Tap a pin: scroll the transcript to the first call about that place and highlight every related call
 let focusedInc=null;
@@ -1128,7 +1158,7 @@ function addIncident(entry,loc,g,saved){
   const inc=Object.assign({id:'i'+Date.now().toString(36)+(incSeq++),lat:g.lat,lon:g.lon,precise:g.precise,label:g.label||loc.label,time:+entry.time,lastAt:Date.now(),status:'active',resolvedAt:0,entries:[],units:new Set()},saved||{});
   inc.entries=inc.entries||[];inc.units=new Set(inc.units||[]);
   const line=saved?saved.line:lineFor(loc,g);inc.line=line||null;inc.inZone=incDist(inc)<=radiusM();
-  inc.marker=L.circleMarker([inc.lat,inc.lon],markerStyle(inc)).addTo(incidentLayer).bindPopup(()=>{const e=inc.entries[inc.entries.length-1];return e?callPopup(e,{label:inc.label,precise:inc.precise}):esc(inc.label)},{maxWidth:300,...popPad()});
+  inc.marker=L.marker([inc.lat,inc.lon],{icon:pinIcon(inc),keyboard:false}).addTo(incidentLayer).bindPopup(()=>{const e=inc.entries[inc.entries.length-1];return e?callPopup(e,{label:inc.label,precise:inc.precise}):esc(inc.label)},{maxWidth:300,...popPad()});
   inc.marker.on('click',()=>focusIncident(inc,true));inc.marker.on('popupclose',()=>{if(focusedInc===inc)focusIncident(null)});
   setIncLine(inc,line);
   incidents.push(inc);
@@ -1331,8 +1361,8 @@ function drawLine(entry){
   el.className='line'+(entry.alert&&!resolved?' alert':'')+(inc?' located':'')+(resolved?' resolved':'')+(inc&&inc===focusedInc?' related':'')+(entry.morse?' morseline':'');
   const tags=[];
   if(entry.partial)tags.push('<span class="tag pend">● still talking…</span>');
-  const tc=entry.kinds.length?typeColor(entry.kinds[0]):UNKNOWN_COLOR;el.style.setProperty('--tc',tc);
-  if(entry.kinds.length)tags.push(`<span class="tag type" title="Type of call${typeGroup(entry.kinds[0])?': '+typeGroup(entry.kinds[0]).label:''}">${esc(entry.kinds[0])}</span>`);
+  el.style.setProperty('--tbar',barBg(resolved?[RESOLVED_COLOR]:svcColors(servicesOf(entry))));
+  for(const k of entry.kinds.slice(0,2))tags.push(`<span class="tag type" style="--tc:${typeColor(k)}" title="${esc((serviceOf(k)?SERVICES[serviceOf(k)].label+' call':'Call type')+(entry.inherited?`. No type was said in this transmission, so it's carried over from the ${fmtTime(entry.inheritedAt).slice(0,5)} call in the same conversation.`:''))}">${esc(k)}${entry.inherited?' ↺':''}</span>`);
   if(entry.toned)tags.push('<span class="tag tone" title="Dispatch alert tones were heard right before this call. Fire and medical calls are sent with tones.">ALERT TONES</span>');
   if(entry.results.length){const r=entry.results[0];tags.push(`<span class="tag loc">📍 ${esc(r.label)}${r.precise?'':' ≈'}</span>`)}
   if(entry.zone&&!resolved)tags.push('<span class="tag al">IN YOUR ZONE</span>');
@@ -1377,10 +1407,16 @@ async function prepare(entry,merged,info={}){
       if(t&&!sameWords&&ratio>0.6&&ratio<1.6&&t!==entry.text&&keepsAllWords(entry.text,t)){entry.fixes=entry.fixes.concat(wordFixes(entry.text,t));entry.text=t;entry.unc=new Set()}
       entry.sameAs=ai.same_incident||null;entry.resolves=ai.resolves||null;
       entry.aiChecked=true;entry.check='✓ AI CHECKED';entry.checkNote='Transcript and location checked against recent calls and the county street list'+(ai.confidence?` (${ai.confidence} confidence)`:'');
-      const r=await resolveAIWords(ai.location,entry.text);
+      if(ai.location&&ai.location.number&&ai.location.street)ai.location.number=houseNumberFix(entry.text,String(ai.location.number),String(ai.location.street));
+      let r=await resolveAIWords(ai.location,entry.text);
+      if(r&&r.loc.s&&!placedStreet(entry.text,ai.location.street))r=null;
+      // "3 Lincoln 12" is a unit call sign, not Lincoln Street
+      if(r&&ai.location.street&&!ai.location.cross&&PHONETIC.has(baseOf(String(ai.location.street)))&&!new RegExp('\\b'+baseOf(String(ai.location.street))+'\\s+(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|court|ct|place|boulevard|blvd)\\b','i').test(entry.text))r=null;
+      // a street address the county list already placed exactly beats a far-off guess when no town was said
+      if(r&&entry.geo&&entry.geo.g.precise&&entry.geo.loc.type==='address'&&!extract(entry.text).town&&dist([r.g.lat,r.g.lon],[entry.geo.g.lat,entry.geo.g.lon])>3000){r=entry.geo;r._kept=true}
       Object.assign(entry,{kinds:kindsOf(entry.text,r?r.loc.words:locWordsOf(entry)),hits:watchMatches(entry.text)});
       if(r&&ai.location.street){const t2=alignStreetWords(entry.text,String(ai.location.street).replace(/\s*\([^)]*\)\s*$/,''));if(t2!==entry.text){entry.fixes=entry.fixes.concat(wordFixes(entry.text,t2));entry.text=t2;r.loc.words=locWordsFor(t2,[ai.location.number,ai.location.street,ai.location.cross,ai.location.place,r.g.label])}}
-      if(r){entry.geo=r;if(ai.confidence==='low'){r.g.precise=false;r.loc.exact=false}entry.locs=[r.loc];const tn=ai.location.town&&String(ai.location.town).toLowerCase();if(TOWNS[tn]){lastTown=tn;lastTownAt=Date.now()}}
+      if(r){entry.geo=r;if(ai.confidence==='low'&&!r._kept){r.g.precise=false;r.loc.exact=false}entry.locs=[r.loc];const tn=ai.location.town&&String(ai.location.town).toLowerCase();if(TOWNS[tn]){lastTown=tn;lastTownAt=Date.now()}}
       else if(ai.location===null){entry.geo=null;entry.locs=[]} // the check says there's no place in this call
       {const l=landmarkIn(entry.text);if(l&&(weakGeo(entry.geo)||l.hosp&&/^(US|CA) \d+/.test(entry.geo.g.label||''))){entry.geo=landmarkGeo(l,entry.text);entry.locs=[entry.geo.loc]}}
     }
@@ -1395,6 +1431,22 @@ function alignStreetWords(text,street){
     let best=null;for(const m of out.matchAll(/[A-Za-z']{4,}/g)){const d=lev(m[0].toLowerCase(),w.toLowerCase(),2);if(d<=2&&d<w.length/3&&(!best||d<best.d))best={d,word:m[0],i:m.index}}
     if(best)out=out.slice(0,best.i)+w+out.slice(best.i+best.word.length)}
   return out;
+}
+// "1424, Osage 97": the house number is the one before the street, not the one after
+function houseNumberFix(text,num,street){
+  const w=baseOf(street.replace(/\s*\([^)]*\)\s*$/,'')).split(' ')[0];if(!w)return num;
+  const tok=tokenize(text),i=tok.findIndex(t=>t===w||lev(t,w,1)<=1);if(i<0)return num;
+  const before=tok.slice(Math.max(0,i-2),i).reverse().find(t=>/^\d{2,6}$/.test(t)),after=tok.slice(i+1,i+4).includes(num);
+  return before&&before!==num&&after?before:num;
+}
+function placedStreet(text,street){
+  const words=baseOf(String(street||'').replace(/\s*\([^)]*\)\s*$/,'')).split(' ').filter(Boolean);if(!words.length)return false;
+  const tok=tokenize(text),cue=new Set(['on','at','to','near','off','from','in','along','by','of','down','up','onto','toward','towards','block','into','via','past','and']);
+  for(let i=0;i<tok.length;i++){if(tok[i]!==words[0]&&lev(tok[i],words[0],1)>1)continue;
+    const j=i+words.length;if(tok[j]!==undefined&&SUFFIX[tok[j]]!==undefined)return true;
+    if(cue.has(tok[i-1])||/^\d/.test(tok[i-1]||'')||DIRS[tok[i-1]])return true;
+    if(tok[j]==='and'||tok[j]==='at')return true}
+  return false;
 }
 async function regionalFallback(entry){
   const m=entry.text.match(/\b(\d{2,6})\s+((?:[A-Za-z]+\s+){1,2}?)(highway|road|avenue|street|lane|drive|way|boulevard)\b/i);if(!m)return null;
@@ -1436,8 +1488,8 @@ async function playClip(entry){
 // ---------------- remember calls and pins between sessions ----------------
 let saveT;
 function saveState(){clearTimeout(saveT);saveT=setTimeout(()=>{const now=Date.now();
-  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units],line:i.line||null,kind:incKind(i)}));
-  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null,morse:l.morse||null,toned:!!l.toned}));
+  const incs=incidents.filter(i=>!i.gone).map(i=>({id:i.id,lat:i.lat,lon:i.lon,precise:i.precise,label:i.label,time:+i.time,lastAt:i.lastAt,status:i.status,resolvedAt:i.resolvedAt,units:[...i.units],line:i.line||null,svcs:incServices(i)}));
+  const ls=lines.filter(l=>!l.partial&&now-l.time<ACTIVE_SHOW).slice(-150).map(l=>({id:l.id,time:+l.time,text:l.text,kinds:l.kinds,check:l.check,checkNote:l.checkNote,fixes:l.fixes,unc:[...(l.unc||[])],locWords:(l.locs||[]).flatMap(x=>x.words||[]),hits:(l.hits||[]).map(h=>({name:h.name,base:h.base})),inc:l.inc&&!l.inc.gone?l.inc.id:null,zone:!!l.zone,clip:!!l.clip,resolvedInc:l.resolvedInc&&!l.resolvedInc.gone?l.resolvedInc.id:null,morse:l.morse||null,toned:!!l.toned,inherited:!!l.inherited,inheritedAt:l.inheritedAt?+l.inheritedAt:0}));
   store.set('dw_state',{v:1,saved:now,incs,lines:ls});
 },800)}
 function restoreState(){
@@ -1445,7 +1497,7 @@ function restoreState(){
   for(const x of st.incs||[]){if((x.status==='resolved'&&now-x.resolvedAt>RESOLVED_SHOW)||(x.status!=='resolved'&&now-x.lastAt>ACTIVE_SHOW))continue;
     byId.set(x.id,addIncident({time:new Date(x.time)},{label:x.label},{lat:x.lat,lon:x.lon,precise:x.precise,label:x.label},x))}
   for(const x of st.lines.sort((a,b)=>a.time-b.time)){if(now-x.time>ACTIVE_SHOW)continue;
-    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip,morse:x.morse||null,toned:!!x.toned};
+    const e={id:x.id,time:new Date(x.time),text:x.text,kinds:x.kinds||[],check:x.check,checkNote:x.checkNote,fixes:x.fixes||[],unc:new Set(x.unc||[]),locs:[{words:x.locWords||[]}],hits:x.hits||[],results:[],final:true,alerted:true,resolvedChecked:true,restored:true,clip:x.clip,morse:x.morse||null,toned:!!x.toned,inherited:!!x.inherited,inheritedAt:x.inheritedAt?new Date(x.inheritedAt):null};
     const inc=x.inc&&byId.get(x.inc);if(inc){e.inc=inc;inc.entries.push(e)}
     if(x.resolvedInc&&byId.get(x.resolvedInc))e.resolvedInc=byId.get(x.resolvedInc);
     reveal(e);
@@ -1476,6 +1528,7 @@ function reveal(entry){
     else{entry.inc=addIncident(entry,loc,g);newPin=true}
   }
   if(entry.inc&&!entry.inc.entries.includes(entry)){entry.inc.entries.push(entry);entry.inc.lastAt=Date.now();for(const u of entry.units)entry.inc.units.add(u)}
+  inheritKinds(entry);
   if(entry.inc)styleInc(entry.inc);
   // move the pin only when this call created it (its full version arrived) or it pins the place more precisely
   if(entry.geo&&entry.inc&&!newPin&&(entry.inc.entries[0]===entry||(entry.geo.g.precise&&!entry.inc.precise))){const{loc,g}=entry.geo;
@@ -1507,7 +1560,7 @@ $('testForm').onsubmit=e=>{e.preventDefault();const v=$('testInput').value.trim(
 $('clearBtn').onclick=()=>{focusedInc=null;lines.length=0;$('transcript').innerHTML='';$('tCount').textContent='';incidentLayer.clearLayers();incidents.length=0;store.del('dw_state');updateEdge()};
 $('exportBtn').onclick=()=>{const txt=lines.map(l=>`[${l.time.toLocaleString()}] ${l.text}${l.results.length?'  {'+l.results.map(r=>r.label).join('; ')+'}':''}`).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`slo-dispatch-${new Date().toISOString().slice(0,16).replace(':','')}.txt`;a.click()};
 // Phone sheet
-$('legend').innerHTML=TYPE_GROUPS.map(g=>`<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')+'<span><i style="background:#53ebb0"></i>Resolved</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px #ff4e5e"></i>In your zone</span>';
+$('legend').innerHTML=SVC_ORDER.map(v=>`<span><i style="background:${SERVICES[v].color}"></i>${SERVICES[v].label}</span>`).join('')+`<span><i style="background:${RESOLVED_COLOR}"></i>Resolved</span><span><i style="background:${pieBg([SERVICES.medical.color,SERVICES.police.color])}"></i>Split = more than one</span><span><i style="background:#2a3d4a;box-shadow:0 0 0 2px var(--cyan)"></i>In your zone</span>`;
 function setSheet(open){$('feed').classList.toggle('open',open);document.body.classList.toggle('sheet-open',open)}
 $('feedHead').onclick=e=>{if(e.target.closest('button'))return;if(innerWidth<=760)setSheet(!$('feed').classList.contains('open'))};
 document.querySelector('#feed .grab').onclick=()=>setSheet(!$('feed').classList.contains('open'));
@@ -1548,7 +1601,7 @@ const PROVIDERS={
     async run(wav,prompt,key){
       const model=groqModel();
       const fd=new FormData();fd.append('file',wav,'call.wav');fd.append('model',model);fd.append('language','en');fd.append('temperature','0');fd.append('response_format','verbose_json');if(prompt)fd.append('prompt',prompt);
-      const r=await fetch((API_BASE||'https://api.groq.com')+'/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+key},body:fd,signal:timeoutSignal(25000)});
+      const r=await groqFetch('/openai/v1/audio/transcriptions',{method:'POST',body:fd,signal:timeoutSignal(25000)});
       if(!r.ok){const e=await apiErr(r);e.model=model;throw e}countUse('stt:'+model);const j=await r.json();
       if(!j.segments)return{text:j.text||'',unclear:[]};
       const segs=j.segments.filter(x=>!(x.no_speech_prob>0.6&&x.avg_logprob<-0.7)); // drop hiss that was "heard" as words
@@ -1576,7 +1629,17 @@ const engine=()=>store.get('engine','groq');
 // The site's shared Groq key (used until you add your own in Settings)
 const SHARED_GROQ=(()=>{try{return atob(["TzNGaFBkMXJG", "ek5CZmJ5SzVs", "UTg1QVFJWUYz", "YnlkR1dPYlhQ", "MDBRbGpOcjJB", "eFQ0bUlpcV9r", "c2c="].join('')).split('').reverse().join('')}catch{return''}})();
 const ownKey=(k=engine())=>store.get('sttKey_'+k,'');
-const sttKey=(k=engine())=>ownKey(k)||(k==='groq'?SHARED_GROQ:'');
+// The shared key lives in a small relay server (relay/worker.js), never in this page. Your own key, if you add one, goes straight to Groq.
+const RELAY_URL=''; // the relay's address (relay/worker.js on Cloudflare)
+const RELAY=QS.get('relay')||RELAY_URL;
+const sharedOK=()=>!!(RELAY||SHARED_GROQ);
+const sttKey=(k=engine())=>ownKey(k)||(k==='groq'&&sharedOK()?'shared':'');
+function groqFetch(path,init={}){
+  const own=ownKey('groq'),headers=Object.assign({},init.headers||{});
+  let base=API_BASE||'https://api.groq.com';
+  if(own)headers.Authorization='Bearer '+own;else if(RELAY&&!API_BASE)base=RELAY.replace(/\/$/,'');else headers.Authorization='Bearer '+(API_BASE?'test':SHARED_GROQ);
+  return fetch(base+path,{...init,headers});
+}
 const cloudReady=()=>engine()!=='device'&&!!sttKey();
 function encodeWav(f32,sr=16000){
   const b=new ArrayBuffer(44+f32.length*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
@@ -1922,9 +1985,9 @@ audio.addEventListener('waiting',()=>listening&&state('BUFFERING'));
 function paintEngine(){
   const e=engine(),dev=e==='device';$('engine').value=e;
   $('keyBox').style.display=dev?'none':'';
-  if(!dev){const P=PROVIDERS[e],own=ownKey(e),shared=e==='groq'&&!own;$('sttKey').placeholder=shared?'Using the shared key. Paste your own (optional)':P.ph;$('sttKey').value=own?'••••••••••••':'';
+  if(!dev){const P=PROVIDERS[e],own=ownKey(e),shared=e==='groq'&&!own&&sharedOK();$('sttKey').placeholder=shared?'Using the shared key. Paste your own (optional)':P.ph;$('sttKey').value=own?'••••••••••••':'';
     $('useShared').style.display=e==='groq'&&own?'':'none';
-    $('engineNote').innerHTML=shared?`Using the site's built-in Groq key, so it works with no setup. It's shared by everyone using this site; if it runs into its daily limit, add your own free key from <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>.`:own?'Your own key is saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
+    $('engineNote').innerHTML=shared?`Using the site's shared Groq key, so it works with no setup. The key stays on the site's private relay server and is never sent to your browser. It's shared by everyone using the site; if it runs into its daily limit, add your own free key from <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>.`:own?'Your own key is saved in this browser. Calls are transcribed in about a second.':`Get a key at <a href="${P.keyUrl}" target="_blank" rel="noopener" style="color:var(--cyan)">${P.keyUrl.replace('https://','')}</a>, then paste it here. It's saved only in this browser.`}
   else paintModels();
 }
 function paintUsage(){
